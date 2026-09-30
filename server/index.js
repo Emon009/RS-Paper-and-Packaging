@@ -1,11 +1,10 @@
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
-import fs from 'fs';
 import { fileURLToPath } from 'url';
+import { createRequire } from 'module';
 import {
   loadData,
-  saveData,
   getGodownStock,
   getDashboardStats,
   getAllCustomerFolders,
@@ -33,16 +32,27 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-// Serve static assets from dist if built
-if (fs.existsSync(DIST_PATH)) {
-  app.use(express.static(DIST_PATH));
-}
+// Static assets (only in non-serverless environment)
+let fs;
+try {
+  const fsModule = await import('fs');
+  fs = fsModule.default;
+  if (fs.existsSync(DIST_PATH)) {
+    const { default: expressStatic } = await import('express');
+    app.use(express.static(DIST_PATH));
+  }
+} catch (e) {}
 
-// 1. Dashboard summary & Stats
-app.get('/api/dashboard', (req, res) => {
+// ── Seed / Sample healthcheck ──
+app.post('/api/seed-sample', (req, res) => {
+  res.json({ success: true, message: 'Sample data checked' });
+});
+
+// ── 1. Dashboard ──
+app.get('/api/dashboard', async (req, res) => {
   try {
-    const stats = getDashboardStats();
-    const data = loadData();
+    const stats = await getDashboardStats();
+    const data = await loadData();
     res.json({
       success: true,
       stats,
@@ -55,55 +65,41 @@ app.get('/api/dashboard', (req, res) => {
   }
 });
 
-// 2. Godown Stock API (Tissue & Cutting/News Paper)
-app.get('/api/stock', (req, res) => {
+// ── 2. Stock ──
+app.get('/api/stock', async (req, res) => {
   try {
-    const stock = getGodownStock();
+    const stock = await getGodownStock();
     res.json({ success: true, stock });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 });
 
-// Seed / Sample healthcheck
-app.post('/api/seed-sample', (req, res) => {
-  res.json({ success: true, message: 'Sample data checked' });
-});
-
-// Helper for flattened customer representation
+// ── Helpers for flat customer/supplier ──
 function formatFlatCustomer(folder) {
   if (!folder || !folder.customer) return null;
   return {
-    id: folder.customer.id,
-    name: folder.customer.name,
-    phone: folder.customer.phone,
-    address: folder.customer.address,
-    createdAt: folder.customer.createdAt,
+    id: folder.customer.id, name: folder.customer.name, phone: folder.customer.phone,
+    address: folder.customer.address, createdAt: folder.customer.createdAt,
     ...folder.summary,
-    salesCount: (folder.sales || []).length,
-    paymentsCount: (folder.payments || []).length
+    salesCount: (folder.sales || []).length, paymentsCount: (folder.payments || []).length
   };
 }
 
-// Helper for flattened supplier representation
 function formatFlatSupplier(folder) {
   if (!folder || !folder.supplier) return null;
   return {
-    id: folder.supplier.id,
-    name: folder.supplier.name,
-    phone: folder.supplier.phone,
-    address: folder.supplier.address,
-    createdAt: folder.supplier.createdAt,
+    id: folder.supplier.id, name: folder.supplier.name, phone: folder.supplier.phone,
+    address: folder.supplier.address, createdAt: folder.supplier.createdAt,
     ...folder.summary,
-    purchasesCount: (folder.purchases || []).length,
-    paymentsCount: (folder.payments || []).length
+    purchasesCount: (folder.purchases || []).length, paymentsCount: (folder.payments || []).length
   };
 }
 
-// 3. Customer Digital Accounts (অ্যাপের ভেতরের কাস্টমার খাতা)
-app.get('/api/customers', (req, res) => {
+// ── 3. Customers ──
+app.get('/api/customers', async (req, res) => {
   try {
-    const folders = getAllCustomerFolders();
+    const folders = await getAllCustomerFolders();
     const customers = folders.map(formatFlatCustomer).filter(Boolean);
     res.json({ success: true, customers });
   } catch (error) {
@@ -111,10 +107,9 @@ app.get('/api/customers', (req, res) => {
   }
 });
 
-// Ledger View compatibility route
-app.get('/api/ledger/customers', (req, res) => {
+app.get('/api/ledger/customers', async (req, res) => {
   try {
-    const folders = getAllCustomerFolders();
+    const folders = await getAllCustomerFolders();
     const customers = folders.map(formatFlatCustomer).filter(Boolean);
     res.json({ success: true, customers });
   } catch (error) {
@@ -122,39 +117,31 @@ app.get('/api/ledger/customers', (req, res) => {
   }
 });
 
-app.get('/api/customers/:id', (req, res) => {
+app.get('/api/customers/:id', async (req, res) => {
   try {
-    const folder = getCustomerFolderDetails(req.params.id);
-    if (!folder) {
-      return res.status(404).json({ success: false, message: 'কাস্টমার খাতা পাওয়া যায়নি' });
-    }
-    res.json({
-      success: true,
-      profile: folder.customer,
-      ...folder
-    });
+    const folder = await getCustomerFolderDetails(req.params.id);
+    if (!folder) return res.status(404).json({ success: false, message: 'কাস্টমার খাতা পাওয়া যায়নি' });
+    res.json({ success: true, profile: folder.customer, ...folder });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 });
 
-app.post('/api/customers', (req, res) => {
+app.post('/api/customers', async (req, res) => {
   try {
     const { name, phone, address } = req.body;
-    if (!name || !name.trim()) {
-      return res.status(400).json({ success: false, message: 'কাস্টমারের নাম আবশ্যক' });
-    }
-    const customer = ensureCustomerExists(name, phone, address);
-    res.json({ success: true, message: 'নতুন কাস্টমার খাতা সফলভাবে তৈরি হয়েছে', customer });
+    if (!name?.trim()) return res.status(400).json({ success: false, message: 'কাস্টমারের নাম আবশ্যক' });
+    const customer = await ensureCustomerExists(name, phone, address);
+    res.json({ success: true, message: 'নতুন কাস্টমার খাতা সফলভাবে তৈরি হয়েছে', customer });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 });
 
-// 4. Supplier Digital Accounts (অ্যাপের ভেতরের সাপ্লায়ার খাতা)
-app.get('/api/suppliers', (req, res) => {
+// ── 4. Suppliers ──
+app.get('/api/suppliers', async (req, res) => {
   try {
-    const folders = getAllSupplierFolders();
+    const folders = await getAllSupplierFolders();
     const suppliers = folders.map(formatFlatSupplier).filter(Boolean);
     res.json({ success: true, suppliers });
   } catch (error) {
@@ -162,10 +149,9 @@ app.get('/api/suppliers', (req, res) => {
   }
 });
 
-// Ledger View compatibility route
-app.get('/api/ledger/suppliers', (req, res) => {
+app.get('/api/ledger/suppliers', async (req, res) => {
   try {
-    const folders = getAllSupplierFolders();
+    const folders = await getAllSupplierFolders();
     const suppliers = folders.map(formatFlatSupplier).filter(Boolean);
     res.json({ success: true, suppliers });
   } catch (error) {
@@ -173,39 +159,31 @@ app.get('/api/ledger/suppliers', (req, res) => {
   }
 });
 
-app.get('/api/suppliers/:id', (req, res) => {
+app.get('/api/suppliers/:id', async (req, res) => {
   try {
-    const folder = getSupplierFolderDetails(req.params.id);
-    if (!folder) {
-      return res.status(404).json({ success: false, message: 'সাপ্লায়ার খাতা পাওয়া যায়নি' });
-    }
-    res.json({
-      success: true,
-      profile: folder.supplier,
-      ...folder
-    });
+    const folder = await getSupplierFolderDetails(req.params.id);
+    if (!folder) return res.status(404).json({ success: false, message: 'সাপ্লায়ার খাতা পাওয়া যায়নি' });
+    res.json({ success: true, profile: folder.supplier, ...folder });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 });
 
-app.post('/api/suppliers', (req, res) => {
+app.post('/api/suppliers', async (req, res) => {
   try {
     const { name, phone, address } = req.body;
-    if (!name || !name.trim()) {
-      return res.status(400).json({ success: false, message: 'সাপ্লায়ারের নাম আবশ্যক' });
-    }
-    const supplier = ensureSupplierExists(name, phone, address);
-    res.json({ success: true, message: 'নতুন সাপ্লায়ার খাতা সফলভাবে তৈরি হয়েছে', supplier });
+    if (!name?.trim()) return res.status(400).json({ success: false, message: 'সাপ্লায়ারের নাম আবশ্যক' });
+    const supplier = await ensureSupplierExists(name, phone, address);
+    res.json({ success: true, message: 'নতুন সাপ্লায়ার খাতা সফলভাবে তৈরি হয়েছে', supplier });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 });
 
-// 5. Purchases API
-app.get('/api/purchases', (req, res) => {
+// ── 5. Purchases ──
+app.get('/api/purchases', async (req, res) => {
   try {
-    const data = loadData();
+    const data = await loadData();
     const list = [...(data.purchases || [])].reverse();
     res.json({ success: true, purchases: list });
   } catch (error) {
@@ -213,23 +191,11 @@ app.get('/api/purchases', (req, res) => {
   }
 });
 
-app.post('/api/purchases', (req, res) => {
+app.post('/api/purchases', async (req, res) => {
   try {
-    const {
-      date,
-      supplierName,
-      supplierPhone,
-      supplierAddress,
-      items,
-      discount = 0,
-      paidAmount = 0,
-      paymentMethod = 'ক্যাশ',
-      notes = ''
-    } = req.body;
-
-    if (!supplierName || !date || !items || items.length === 0) {
+    const { date, supplierName, supplierPhone, supplierAddress, items, discount = 0, paidAmount = 0, paymentMethod = 'ক্যাশ', notes = '' } = req.body;
+    if (!supplierName || !date || !items || items.length === 0)
       return res.status(400).json({ success: false, message: 'সাপ্লায়ার নাম, তারিখ এবং পণ্যের বিবরণ আবশ্যক!' });
-    }
 
     const calculatedItems = items.map(item => {
       const qty = parseFloat(item.quantity) || 0;
@@ -237,62 +203,40 @@ app.post('/api/purchases', (req, res) => {
       return {
         productType: item.productType,
         name: item.name || (item.productType === 'tissue' ? 'Tissue Paper' : 'Cutting / News Paper'),
-        quantity: qty,
-        unit: item.unit || 'কেজি',
-        rate: rate,
-        total: Math.round(qty * rate * 100) / 100
+        quantity: qty, unit: item.unit || 'কেজি', rate, total: Math.round(qty * rate * 100) / 100
       };
     });
-
     const subTotal = calculatedItems.reduce((acc, curr) => acc + curr.total, 0);
     const disc = parseFloat(discount) || 0;
     const grandTotal = Math.max(0, subTotal - disc);
     const paid = parseFloat(paidAmount) || 0;
     const dueAmount = Math.max(0, grandTotal - paid);
 
-    const newPurchase = addPurchase({
-      date,
-      supplierName: supplierName.trim(),
-      supplierPhone: (supplierPhone || '').trim(),
-      supplierAddress: (supplierAddress || '').trim(),
-      items: calculatedItems,
-      subTotal,
-      discount: disc,
-      grandTotal,
-      paidAmount: paid,
-      dueAmount,
-      paymentMethod,
-      notes
+    const newPurchase = await addPurchase({
+      date, supplierName: supplierName.trim(), supplierPhone: (supplierPhone || '').trim(),
+      supplierAddress: (supplierAddress || '').trim(), items: calculatedItems,
+      subTotal, discount: disc, grandTotal, paidAmount: paid, dueAmount, paymentMethod, notes
     });
-
-    res.json({
-      success: true,
-      message: 'ক্রয় এন্ট্রি সম্পন্ন ও সাপ্লায়ারের খাতায় সংরক্ষিত হয়েছে',
-      purchase: newPurchase,
-      stock: getGodownStock()
-    });
+    res.json({ success: true, message: 'ক্রয় এন্ট্রি সম্পন্ন ও সাপ্লায়ারের খাতায় সংরক্ষিত হয়েছে', purchase: newPurchase, stock: await getGodownStock() });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 });
 
-app.delete('/api/purchases/:id', (req, res) => {
+app.delete('/api/purchases/:id', async (req, res) => {
   try {
-    const { id } = req.params;
-    const deleted = deletePurchase(id);
-    if (!deleted) {
-      return res.status(404).json({ success: false, message: 'ক্রয় রেকর্ড পাওয়া যায়নি' });
-    }
+    const deleted = await deletePurchase(req.params.id);
+    if (!deleted) return res.status(404).json({ success: false, message: 'ক্রয় রেকর্ড পাওয়া যায়নি' });
     res.json({ success: true, message: 'রেকর্ড মুছে ফেলা হয়েছে' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 });
 
-// 6. Sales API
-app.get('/api/sales', (req, res) => {
+// ── 6. Sales ──
+app.get('/api/sales', async (req, res) => {
   try {
-    const data = loadData();
+    const data = await loadData();
     const list = [...(data.sales || [])].reverse();
     res.json({ success: true, sales: list });
   } catch (error) {
@@ -300,23 +244,11 @@ app.get('/api/sales', (req, res) => {
   }
 });
 
-app.post('/api/sales', (req, res) => {
+app.post('/api/sales', async (req, res) => {
   try {
-    const {
-      date,
-      customerName,
-      customerPhone,
-      customerAddress,
-      items,
-      discount = 0,
-      receivedAmount = 0,
-      paymentMethod = 'ক্যাশ',
-      notes = ''
-    } = req.body;
-
-    if (!customerName || !date || !items || items.length === 0) {
+    const { date, customerName, customerPhone, customerAddress, items, discount = 0, receivedAmount = 0, paymentMethod = 'ক্যাশ', notes = '' } = req.body;
+    if (!customerName || !date || !items || items.length === 0)
       return res.status(400).json({ success: false, message: 'কাস্টমার নাম, তারিখ এবং পণ্যের বিবরণ আবশ্যক!' });
-    }
 
     const calculatedItems = items.map(item => {
       const qty = parseFloat(item.quantity) || 0;
@@ -324,100 +256,54 @@ app.post('/api/sales', (req, res) => {
       return {
         productType: item.productType,
         name: item.name || (item.productType === 'tissue' ? 'Tissue Paper' : 'Cutting / News Paper'),
-        quantity: qty,
-        unit: item.unit || 'কেজি',
-        rate: rate,
-        total: Math.round(qty * rate * 100) / 100
+        quantity: qty, unit: item.unit || 'কেজি', rate, total: Math.round(qty * rate * 100) / 100
       };
     });
-
     const subTotal = calculatedItems.reduce((acc, curr) => acc + curr.total, 0);
     const disc = parseFloat(discount) || 0;
     const grandTotal = Math.max(0, subTotal - disc);
     const received = parseFloat(receivedAmount) || 0;
     const dueAmount = Math.max(0, grandTotal - received);
 
-    const newSale = addSale({
-      date,
-      customerName: customerName.trim(),
-      customerPhone: (customerPhone || '').trim(),
-      customerAddress: (customerAddress || '').trim(),
-      items: calculatedItems,
-      subTotal,
-      discount: disc,
-      grandTotal,
-      receivedAmount: received,
-      dueAmount,
-      paymentMethod,
-      notes
+    const newSale = await addSale({
+      date, customerName: customerName.trim(), customerPhone: (customerPhone || '').trim(),
+      customerAddress: (customerAddress || '').trim(), items: calculatedItems,
+      subTotal, discount: disc, grandTotal, receivedAmount: received, dueAmount, paymentMethod, notes
     });
-
-    res.json({
-      success: true,
-      message: 'বিক্রয় ও বিল কাস্টমারের ব্যক্তিগত খাতায় সংরক্ষিত হয়েছে',
-      sale: newSale,
-      stock: getGodownStock()
-    });
+    res.json({ success: true, message: 'বিক্রয় ও বিল কাস্টমারের ব্যক্তিগত খাতায় সংরক্ষিত হয়েছে', sale: newSale, stock: await getGodownStock() });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 });
 
-app.delete('/api/sales/:id', (req, res) => {
+app.delete('/api/sales/:id', async (req, res) => {
   try {
-    const { id } = req.params;
-    const deleted = deleteSale(id);
-    if (!deleted) {
-      return res.status(404).json({ success: false, message: 'বিক্রয় রেকর্ড পাওয়া যায়নি' });
-    }
+    const deleted = await deleteSale(req.params.id);
+    if (!deleted) return res.status(404).json({ success: false, message: 'বিক্রয় রেকর্ড পাওয়া যায়নি' });
     res.json({ success: true, message: 'রেকর্ড মুছে ফেলা হয়েছে' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 });
 
-// 7. Payments API (টাকা জমা বা দেনা পরিশোধের রশিদ)
-app.post('/api/payments', (req, res) => {
+// ── 7. Payments ──
+app.post('/api/payments', async (req, res) => {
   try {
-    const {
-      type, // 'supplier_payment' or 'customer_collection'
-      partyName,
-      partyPhone,
-      amount,
-      date,
-      paymentMethod = 'ক্যাশ',
-      notes = ''
-    } = req.body;
-
+    const { type, partyName, partyPhone, amount, date, paymentMethod = 'ক্যাশ', notes = '' } = req.body;
     const amt = parseFloat(amount);
-    if (!partyName || !amt || amt <= 0 || !date) {
+    if (!partyName || !amt || amt <= 0 || !date)
       return res.status(400).json({ success: false, message: 'সঠিক নাম, তারিখ ও টাকার পরিমাণ দিন' });
-    }
-
-    const newPayment = addPayment({
-      type,
-      partyName: partyName.trim(),
-      partyPhone: (partyPhone || '').trim(),
-      amount: amt,
-      date,
-      paymentMethod,
-      notes
-    });
-
-    res.json({
-      success: true,
-      message: 'টাকা জমা/পরিশোধের রশিদ সফলভাবে সংরক্ষিত হয়েছে',
-      payment: newPayment
-    });
+    const newPayment = await addPayment({ type, partyName: partyName.trim(), partyPhone: (partyPhone || '').trim(), amount: amt, date, paymentMethod, notes });
+    res.json({ success: true, message: 'টাকা জমা/পরিশোধের রশিদ সফলভাবে সংরক্ষিত হয়েছে', payment: newPayment });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 });
 
-// 8. SQL Database Dump Export (For future external database connection)
-app.get('/api/system/export-sql', (req, res) => {
+// ── 8. SQL Export ──
+app.get('/api/system/export-sql', async (req, res) => {
   try {
-    const sql = exportAsSql();
+    const sql = await exportAsSql();
     res.setHeader('Content-Type', 'application/sql');
     res.setHeader('Content-Disposition', 'attachment; filename=rs_paper_database.sql');
     res.send(sql);
@@ -426,22 +312,22 @@ app.get('/api/system/export-sql', (req, res) => {
   }
 });
 
-// 9. Supabase Status
+// ── 9. Supabase Status ──
 app.get('/api/system/supabase-status', (req, res) => {
-  res.json({
-    success: true,
-    supabase: getSupabaseConfigStatus()
-  });
+  res.json({ success: true, supabase: getSupabaseConfigStatus() });
 });
 
-// Fallback to index.html for SPA
-if (fs.existsSync(DIST_PATH)) {
-  app.get('*', (req, res) => {
-    if (!req.path.startsWith('/api')) {
-      res.sendFile(path.join(DIST_PATH, 'index.html'));
-    }
-  });
-}
+// ── SPA Fallback ──
+try {
+  const fsCheck = await import('fs');
+  if (fsCheck.default.existsSync(DIST_PATH)) {
+    app.get('*', (req, res) => {
+      if (!req.path.startsWith('/api')) {
+        res.sendFile(path.join(DIST_PATH, 'index.html'));
+      }
+    });
+  }
+} catch (e) {}
 
 if (!process.env.VERCEL) {
   app.listen(PORT, () => {
