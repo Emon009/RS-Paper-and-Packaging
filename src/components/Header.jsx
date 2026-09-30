@@ -41,8 +41,8 @@ export default function Header({
                 <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-800 font-sans">
                   আর.এস. পেপার এন্ড প্যাকেজিং
                 </h1>
-                <span className="px-2 py-0.5 text-xs font-semibold bg-emerald-100 text-emerald-800 rounded-full">
-                  মালিক: মোঃ মজনুর রহমান
+                <span className="px-2.5 py-0.5 text-xs font-semibold bg-emerald-100 text-emerald-800 rounded-full">
+                  মোঃ মজনুর রহমান
                 </span>
               </div>
               <p className="text-xs text-slate-500">

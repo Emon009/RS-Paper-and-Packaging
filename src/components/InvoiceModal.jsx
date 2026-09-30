@@ -60,14 +60,14 @@ export default function InvoiceModal({ isOpen, onClose, data, type = 'sale', com
                     <h1 className="text-2xl font-black tracking-tight text-slate-900 font-sans">
                       {company.name || 'আর.এস. পেপার এন্ড প্যাকেজিং'}
                     </h1>
-                    <p className="text-xs font-semibold text-emerald-800">
-                      মালিক: {company.owner || 'মোঃ মজনুর রহমান'}
+                    <p className="text-sm font-semibold text-emerald-800">
+                      {company.owner || 'মোঃ মজনুর রহমান'}
                     </p>
                   </div>
                 </div>
                 <div className="text-xs text-slate-600 mt-2 space-y-0.5">
-                  <p><strong>ঠিকানা:</strong> {company.address || 'চাঁদপাড়া, কোটচাঁদপুর, ঝিনাইদহ'}</p>
-                  <p><strong>মোবাইল:</strong> <span className="font-semibold text-slate-900">{company.phone || '01711006211'}</span></p>
+                  <p>{company.address || 'চাঁদপাড়া, কোটচাঁদপুর, ঝিনাইদহ'}</p>
+                  <p>মোবাইল: <span className="font-semibold text-slate-900">{company.phone || '01711006211'}</span></p>
                 </div>
               </div>
 
@@ -178,8 +178,8 @@ export default function InvoiceModal({ isOpen, onClose, data, type = 'sale', com
             </div>
             <div className="text-center">
               <div className="border-t border-slate-400 w-48 mx-auto mb-1"></div>
-              <p className="text-slate-800 font-semibold">পক্ষে: {company.name || 'আর.এস. পেপার এন্ড প্যাকেজিং'}</p>
-              <p className="text-[11px] text-slate-500">মালিক: {company.owner || 'মোঃ মজনুর রহমান'}</p>
+              <p className="text-slate-800 font-semibold">{company.name || 'আর.এস. পেপার এন্ড প্যাকেজিং'}</p>
+              <p className="text-[11px] text-slate-600">{company.owner || 'মোঃ মজনুর রহমান'}</p>
             </div>
           </div>
 
