@@ -32,9 +32,6 @@ export default function App() {
 
   const fetchData = async () => {
     try {
-      // First ensure sample data exists if fresh
-      await fetch('/api/seed-sample', { method: 'POST' });
-
       const [dashRes, purRes, salRes] = await Promise.all([
         fetch('/api/dashboard'),
         fetch('/api/purchases'),
