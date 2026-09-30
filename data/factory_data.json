@@ -7,7 +7,15 @@
     "phone": "01711006211",
     "email": "contact@rspaperpackaging.com"
   },
-  "customers": [],
+  "customers": [
+    {
+      "id": "CUST-406177",
+      "name": "Test Verification Customer",
+      "phone": "01999999999",
+      "address": "Dhaka",
+      "createdAt": "2026-09-30T06:23:26.178Z"
+    }
+  ],
   "suppliers": [],
   "purchases": [],
   "sales": [],

@@ -515,6 +515,36 @@ export async function addPayment(paymentData) {
   return record;
 }
 
+export async function deletePayment(id) {
+  const ok = await supabaseDelete('payments', id);
+  if (!IS_VERCEL && localFallbackAvailable) {
+    const localData = loadLocalData();
+    const idx = (localData.payments || []).findIndex(p => p.id === id);
+    if (idx !== -1) { localData.payments.splice(idx, 1); saveLocalData(localData); }
+  }
+  return ok;
+}
+
+export async function deleteCustomer(id) {
+  const ok = await supabaseDelete('customers', id);
+  if (!IS_VERCEL && localFallbackAvailable) {
+    const localData = loadLocalData();
+    const idx = (localData.customers || []).findIndex(c => c.id === id);
+    if (idx !== -1) { localData.customers.splice(idx, 1); saveLocalData(localData); }
+  }
+  return ok;
+}
+
+export async function deleteSupplier(id) {
+  const ok = await supabaseDelete('suppliers', id);
+  if (!IS_VERCEL && localFallbackAvailable) {
+    const localData = loadLocalData();
+    const idx = (localData.suppliers || []).findIndex(s => s.id === id);
+    if (idx !== -1) { localData.suppliers.splice(idx, 1); saveLocalData(localData); }
+  }
+  return ok;
+}
+
 // ==========================================
 // SQL EXPORT
 // ==========================================

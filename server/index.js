@@ -18,6 +18,9 @@ import {
   addSale,
   deleteSale,
   addPayment,
+  deletePayment,
+  deleteCustomer,
+  deleteSupplier,
   exportAsSql
 } from './db.js';
 import { getSupabaseConfigStatus } from './supabaseClient.js';
@@ -138,6 +141,16 @@ app.post('/api/customers', async (req, res) => {
   }
 });
 
+app.delete('/api/customers/:id', async (req, res) => {
+  try {
+    const deleted = await deleteCustomer(req.params.id);
+    if (!deleted) return res.status(404).json({ success: false, message: 'কাস্টমার রেকর্ড পাওয়া যায়নি' });
+    res.json({ success: true, message: 'কাস্টমার খাতা মুছে ফেলা হয়েছে' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 // ── 4. Suppliers ──
 app.get('/api/suppliers', async (req, res) => {
   try {
@@ -175,6 +188,16 @@ app.post('/api/suppliers', async (req, res) => {
     if (!name?.trim()) return res.status(400).json({ success: false, message: 'সাপ্লায়ারের নাম আবশ্যক' });
     const supplier = await ensureSupplierExists(name, phone, address);
     res.json({ success: true, message: 'নতুন সাপ্লায়ার খাতা সফলভাবে তৈরি হয়েছে', supplier });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.delete('/api/suppliers/:id', async (req, res) => {
+  try {
+    const deleted = await deleteSupplier(req.params.id);
+    if (!deleted) return res.status(404).json({ success: false, message: 'সাপ্লায়ার রেকর্ড পাওয়া যায়নি' });
+    res.json({ success: true, message: 'সাপ্লায়ার খাতা মুছে ফেলা হয়েছে' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -300,7 +323,17 @@ app.post('/api/payments', async (req, res) => {
   }
 });
 
-// ── 8. SQL Export ──
+app.delete('/api/payments/:id', async (req, res) => {
+  try {
+    const deleted = await deletePayment(req.params.id);
+    if (!deleted) return res.status(404).json({ success: false, message: 'পেমেন্ট রেকর্ড পাওয়া যায়নি' });
+    res.json({ success: true, message: 'পেমেন্ট রেকর্ড মুছে ফেলা হয়েছে' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+
 app.get('/api/system/export-sql', async (req, res) => {
   try {
     const sql = await exportAsSql();
