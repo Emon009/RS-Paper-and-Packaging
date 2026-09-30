@@ -33,20 +33,20 @@ export default function Header({
           
           {/* Brand Logo & Name */}
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white shadow-md shadow-emerald-500/20">
+            <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white shadow-md shadow-emerald-500/20 shrink-0">
               <Building2 className="w-6 h-6" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-800 font-sans">
-                  RS Paper and Packaging
+                  আর.এস. পেপার এন্ড প্যাকেজিং
                 </h1>
                 <span className="px-2 py-0.5 text-xs font-semibold bg-emerald-100 text-emerald-800 rounded-full">
-                  ফ্যাক্টরি ইআরপি
+                  মালিক: মোঃ মজনুর রহমান
                 </span>
               </div>
               <p className="text-xs text-slate-500">
-                টিস্যু ও কাটিং/নিউজ পেপার উৎপাদন, ক্রয়-বিক্রয় ও গোডাউন স্টক ব্যবস্থাপনা
+                চাঁদপাড়া, কোটচাঁদপুর, ঝিনাইদহ | মোবাইল: <span className="font-semibold text-slate-700">01711006211</span>
               </p>
             </div>
           </div>

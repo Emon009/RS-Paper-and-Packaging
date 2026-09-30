@@ -272,8 +272,13 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <footer className="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-500 no-print">
-        <p>© {new Date().getFullYear()} <strong>RS Paper and Packaging</strong>. সর্বস্বত্ব সংরক্ষিত। পেপার ফ্যাক্টরি ইআরপি ও স্টক কন্ট্রোল সিস্টেম।</p>
+      <footer className="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-500 no-print space-y-1">
+        <p>
+          © {new Date().getFullYear()} <strong>{company.name || 'আর.এস. পেপার এন্ড প্যাকেজিং'}</strong> | মালিক: <strong>{company.owner || 'মোঃ মজনুর রহমান'}</strong>
+        </p>
+        <p className="text-slate-400">
+          ঠিকানা: {company.address || 'চাঁদপাড়া, কোটচাঁদপুর, ঝিনাইদহ'} | মোবাইল: <span className="text-slate-600 font-medium">{company.phone || '01711006211'}</span>
+        </p>
       </footer>
 
       {/* Modals */}

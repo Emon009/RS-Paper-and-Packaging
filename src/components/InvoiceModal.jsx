@@ -53,21 +53,22 @@ export default function InvoiceModal({ isOpen, onClose, data, type = 'sale', com
             <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
               <div>
                 <div className="flex items-center gap-2.5">
-                  <div className="w-10 h-10 rounded-lg bg-emerald-700 flex items-center justify-center text-white font-bold">
+                  <div className="w-11 h-11 rounded-lg bg-emerald-700 flex items-center justify-center text-white font-bold shadow">
                     <Building2 className="w-6 h-6" />
                   </div>
                   <div>
                     <h1 className="text-2xl font-black tracking-tight text-slate-900 font-sans">
-                      RS Paper and Packaging
+                      {company.name || 'আর.এস. পেপার এন্ড প্যাকেজিং'}
                     </h1>
                     <p className="text-xs font-semibold text-emerald-800">
-                      টিস্যু ও কাটিং/নিউজ পেপার উৎপাদন ও সরবরাহকারী প্রতিষ্ঠান
+                      মালিক: {company.owner || 'মোঃ মজনুর রহমান'}
                     </p>
                   </div>
                 </div>
-                <p className="text-xs text-slate-500 mt-2">
-                  {company.address || 'পেপার মিল রোড, ঢাকা, বাংলাদেশ'} | ফোন: {company.phone || '০১৭০০-০০০০০০'}
-                </p>
+                <div className="text-xs text-slate-600 mt-2 space-y-0.5">
+                  <p><strong>ঠিকানা:</strong> {company.address || 'চাঁদপাড়া, কোটচাঁদপুর, ঝিনাইদহ'}</p>
+                  <p><strong>মোবাইল:</strong> <span className="font-semibold text-slate-900">{company.phone || '01711006211'}</span></p>
+                </div>
               </div>
 
               <div className="sm:text-right">
@@ -176,8 +177,9 @@ export default function InvoiceModal({ isOpen, onClose, data, type = 'sale', com
               <p className="text-slate-600">গ্রাহক / প্রাপকের স্বাক্ষর</p>
             </div>
             <div className="text-center">
-              <div className="border-t border-slate-400 w-44 mx-auto mb-1"></div>
-              <p className="text-slate-800 font-semibold">পক্ষে: RS Paper and Packaging</p>
+              <div className="border-t border-slate-400 w-48 mx-auto mb-1"></div>
+              <p className="text-slate-800 font-semibold">পক্ষে: {company.name || 'আর.এস. পেপার এন্ড প্যাকেজিং'}</p>
+              <p className="text-[11px] text-slate-500">মালিক: {company.owner || 'মোঃ মজনুর রহমান'}</p>
             </div>
           </div>
 
