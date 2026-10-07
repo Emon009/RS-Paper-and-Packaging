@@ -222,6 +222,19 @@ const translations = {
     language: 'Language',
     english: 'English',
     bangla: 'বাংলা',
+
+    // ── Authentication ──
+    login: 'Login',
+    signIn: 'Sign In',
+    logout: 'Logout',
+    enterPassword: 'Enter app password',
+    passwordLabel: 'Password',
+    passwordRequired: 'Password is required',
+    incorrectPassword: 'Incorrect password! Please try again.',
+    signingIn: 'Signing in...',
+    appLockTitle: 'Factory System Access',
+    appLockSubtitle: 'Please enter the security password to access factory data',
+    secureProtected: 'Database Secured & Encrypted',
   },
 
   bn: {
@@ -444,6 +457,19 @@ const translations = {
     language: 'ভাষা',
     english: 'English',
     bangla: 'বাংলা',
+
+    // ── Authentication ──
+    login: 'লগইন',
+    signIn: 'লগইন করুন',
+    logout: 'লগআউট',
+    enterPassword: 'অ্যাপ পাসওয়ার্ড লিখুন',
+    passwordLabel: 'পাসওয়ার্ড',
+    passwordRequired: 'পাসওয়ার্ড আবশ্যক',
+    incorrectPassword: 'ভুল পাসওয়ার্ড! সঠিক পাসওয়ার্ড দিন।',
+    signingIn: 'লগইন হচ্ছে...',
+    appLockTitle: 'ফ্যাক্টরি সিস্টেম প্রবেশাধিকার',
+    appLockSubtitle: 'ফ্যাক্টরি ড্যাশবোর্ড ও হিসাব দেখতে নিরাপত্তা পাসওয়ার্ড দিন',
+    secureProtected: 'ডাটাবেজ সুরক্ষিত ও এনক্রিপ্ট করা',
   }
 };
 

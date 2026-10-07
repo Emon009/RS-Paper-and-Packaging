@@ -3,6 +3,7 @@ import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
+import crypto from 'crypto';
 import {
   loadData,
   getGodownStock,
@@ -21,7 +22,8 @@ import {
   deletePayment,
   deleteCustomer,
   deleteSupplier,
-  exportAsSql
+  exportAsSql,
+  verifyAdminPassword
 } from './db.js';
 import { getSupabaseConfigStatus } from './supabaseClient.js';
 
@@ -49,6 +51,45 @@ try {
 // ── Seed / Sample healthcheck ──
 app.post('/api/seed-sample', (req, res) => {
   res.json({ success: true, message: 'Sample data checked' });
+});
+
+// ── Authentication Routes ──
+const AUTH_SECRET = process.env.AUTH_SECRET || 'rs_paper_session_secret_2026';
+
+function generateAuthToken() {
+  const salt = 'rs_admin_session_auth_v1';
+  return crypto.createHmac('sha256', AUTH_SECRET).update(salt).digest('hex');
+}
+
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { password } = req.body || {};
+    if (!password) {
+      return res.status(400).json({ success: false, message: 'পাসওয়ার্ড দিন' });
+    }
+    const isValid = await verifyAdminPassword(password);
+    if (!isValid) {
+      return res.status(401).json({ success: false, message: 'ভুল পাসওয়ার্ড! সঠিক পাসওয়ার্ড দিন।' });
+    }
+    const token = generateAuthToken();
+    res.json({ success: true, message: 'লগইন সফল হয়েছে', token });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+app.post('/api/auth/verify', (req, res) => {
+  try {
+    const { token } = req.body || {};
+    if (!token) return res.json({ success: false, authenticated: false });
+    const expectedToken = generateAuthToken();
+    if (token === expectedToken) {
+      return res.json({ success: true, authenticated: true });
+    }
+    return res.json({ success: false, authenticated: false });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
 });
 
 // ── 1. Dashboard ──

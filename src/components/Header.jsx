@@ -8,7 +8,8 @@ import {
   PlusCircle,
   Layers,
   Users,
-  Globe
+  Globe,
+  LogOut
 } from 'lucide-react';
 import { useLanguage } from '../i18n/LanguageContext';
 
@@ -16,7 +17,8 @@ export default function Header({
   activeTab, 
   setActiveTab, 
   onOpenPurchaseModal, 
-  onOpenSaleModal 
+  onOpenSaleModal,
+  onLogout
 }) {
   const { t, lang, toggleLanguage } = useLanguage();
 
@@ -81,6 +83,18 @@ export default function Header({
               <Globe className="w-3.5 h-3.5 text-slate-500" />
               <span className="whitespace-nowrap">{lang === 'en' ? '🇧🇩 বাংলা' : '🇬🇧 EN'}</span>
             </button>
+
+            {/* Logout Button */}
+            {onLogout && (
+              <button
+                onClick={onLogout}
+                title={t('logout')}
+                className="inline-flex items-center justify-center gap-1 px-2.5 sm:px-3 py-2 rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-semibold transition active:scale-95 shrink-0"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline whitespace-nowrap">{t('logout')}</span>
+              </button>
+            )}
           </div>
         </div>
 

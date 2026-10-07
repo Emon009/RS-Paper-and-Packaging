@@ -45,6 +45,9 @@ DEFAULT_DATA = {
     phone: '01711006211',
     email: 'contact@rspaperpackaging.com',
   },
+  settings: {
+    admin_password: process.env.APP_PASSWORD || 'RS01711006211#'
+  },
   customers: [],
   suppliers: [],
   purchases: [],
@@ -563,4 +566,55 @@ export async function exportAsSql() {
   });
 
   return sql;
+}
+
+// ==========================================
+// AUTHENTICATION & SETTINGS
+// ==========================================
+export async function getAdminPassword() {
+  if (isSupabaseConfigured() && supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('app_settings')
+        .select('value')
+        .eq('key', 'admin_password')
+        .single();
+      if (!error && data?.value) {
+        return data.value;
+      }
+    } catch (e) {}
+  }
+
+  // Local fallback
+  const localData = loadLocalData();
+  if (localData?.settings?.admin_password) {
+    return localData.settings.admin_password;
+  }
+
+  return process.env.APP_PASSWORD || 'RS01711006211#';
+}
+
+export async function verifyAdminPassword(inputPassword) {
+  if (!inputPassword) return false;
+  const actualPassword = await getAdminPassword();
+  return inputPassword.trim() === actualPassword.trim();
+}
+
+export async function setAdminPassword(newPassword) {
+  if (!newPassword) return false;
+  const trimmed = newPassword.trim();
+  if (isSupabaseConfigured() && supabase) {
+    try {
+      await supabase
+        .from('app_settings')
+        .upsert({ key: 'admin_password', value: trimmed, updated_at: new Date().toISOString() });
+    } catch (e) {}
+  }
+  if (!IS_VERCEL && localFallbackAvailable) {
+    const localData = loadLocalData();
+    if (!localData.settings) localData.settings = {};
+    localData.settings.admin_password = trimmed;
+    saveLocalData(localData);
+  }
+  return true;
 }

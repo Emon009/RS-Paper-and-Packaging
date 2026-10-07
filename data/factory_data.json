@@ -19,5 +19,8 @@
   "suppliers": [],
   "purchases": [],
   "sales": [],
-  "payments": []
+  "payments": [],
+  "settings": {
+    "admin_password": "RS01711006211#"
+  }
 }

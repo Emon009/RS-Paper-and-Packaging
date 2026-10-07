@@ -10,6 +10,7 @@ import LedgerView from './components/LedgerView';
 import TransactionHistory from './components/TransactionHistory';
 import PartyAccountsView from './components/PartyAccountsView';
 import PartyAccountModal from './components/PartyAccountModal';
+import LoginScreen from './components/LoginScreen';
 import { PlusCircle, ShoppingBag, ShoppingCart, RefreshCw, Sparkles } from 'lucide-react';
 import { useLanguage } from './i18n/LanguageContext';
 
@@ -23,14 +24,17 @@ export default function App() {
   const [company, setCompany] = useState({});
   const [loading, setLoading] = useState(true);
 
+  const [authToken, setAuthToken] = useState(() => {
+    return localStorage.getItem('rs_paper_auth_token') || null;
+  });
+  const [authChecking, setAuthChecking] = useState(true);
+
   // Modals state
   const [purchaseModalState, setPurchaseModalState] = useState({ isOpen: false, initialParty: null });
   const [saleModalState, setSaleModalState] = useState({ isOpen: false, initialParty: null });
   const [invoiceModal, setInvoiceModal] = useState({ isOpen: false, data: null, type: 'sale' });
   const [paymentModal, setPaymentModal] = useState({ isOpen: false, data: {} });
   const [partyAccountModal, setPartyAccountModal] = useState({ isOpen: false, partyInfo: null, type: 'customer' });
-
-
 
   const fetchData = async () => {
     try {
@@ -58,8 +62,46 @@ export default function App() {
   };
 
   useEffect(() => {
-    fetchData();
+    const token = localStorage.getItem('rs_paper_auth_token');
+    if (!token) {
+      setAuthChecking(false);
+      return;
+    }
+    fetch('/api/auth/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token })
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.authenticated) {
+          setAuthToken(token);
+          fetchData();
+        } else {
+          localStorage.removeItem('rs_paper_auth_token');
+          setAuthToken(null);
+        }
+      })
+      .catch(() => {
+        setAuthToken(token);
+        fetchData();
+      })
+      .finally(() => {
+        setAuthChecking(false);
+      });
   }, []);
+
+  const handleLoginSuccess = (token) => {
+    setAuthToken(token);
+    fetchData();
+  };
+
+  const handleLogout = () => {
+    if (window.confirm(lang === 'bn' ? 'আপনি কি নিশ্চিত যে লগআউট করতে চান?' : 'Are you sure you want to log out?')) {
+      localStorage.removeItem('rs_paper_auth_token');
+      setAuthToken(null);
+    }
+  };
 
   const handlePurchaseSuccess = (newPurchase) => {
     fetchData();
@@ -107,6 +149,19 @@ export default function App() {
     });
   };
 
+  if (authChecking) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center text-white">
+        <RefreshCw className="w-8 h-8 text-emerald-400 animate-spin mb-3" />
+        <span className="text-sm font-semibold text-slate-300">{t('loadingData')}</span>
+      </div>
+    );
+  }
+
+  if (!authToken) {
+    return <LoginScreen onLoginSuccess={handleLoginSuccess} />;
+  }
+
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col font-['Hind_Siliguri',sans-serif]">
       {/* Top Header */}
@@ -115,6 +170,7 @@ export default function App() {
         setActiveTab={setActiveTab}
         onOpenPurchaseModal={() => setPurchaseModalState({ isOpen: true, initialParty: null })}
         onOpenSaleModal={() => setSaleModalState({ isOpen: true, initialParty: null })}
+        onLogout={handleLogout}
       />
 
       {/* Main Content Area */}

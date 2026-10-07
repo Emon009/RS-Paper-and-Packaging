@@ -96,3 +96,18 @@ CREATE POLICY "Allow public read/write suppliers" ON suppliers FOR ALL USING (tr
 CREATE POLICY "Allow public read/write purchases" ON purchases FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow public read/write sales" ON sales FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow public read/write payments" ON payments FOR ALL USING (true) WITH CHECK (true);
+
+-- ৬. অ্যাপ সেটিংস ও সিকিউরিটি পাসওয়ার্ড টেবিল (App Settings & Security Table)
+CREATE TABLE IF NOT EXISTS app_settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE app_settings ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow public read/write app_settings" ON app_settings FOR ALL USING (true) WITH CHECK (true);
+
+-- ডিফল্ট অ্যাডমিন পাসওয়ার্ড এন্ট্রি
+INSERT INTO app_settings (key, value) 
+VALUES ('admin_password', 'RS01711006211#')
+ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;
