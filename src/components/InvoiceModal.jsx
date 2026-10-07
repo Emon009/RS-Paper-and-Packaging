@@ -1,15 +1,17 @@
 import React from 'react';
 import { X, Printer, Building2, CheckCircle2 } from 'lucide-react';
 import { formatCurrency, formatQty, formatDate } from '../utils/format';
+import { useLanguage } from '../i18n/LanguageContext';
 
 export default function InvoiceModal({ isOpen, onClose, data, type = 'sale', company = {} }) {
+  const { t, lang } = useLanguage();
   if (!isOpen || !data) return null;
 
   const isSale = type === 'sale';
-  const partyTitle = isSale ? 'কাস্টমারের নাম' : 'সাপ্লায়ারের নাম';
+  const partyTitle = isSale ? t('customerName') : t('supplierName');
   const partyName = isSale ? data.customerName : data.supplierName;
   const partyPhone = isSale ? data.customerPhone : data.supplierPhone;
-  const invoiceTitle = isSale ? 'ক্যাশ মেমো / বিক্রয় চালান' : 'ক্রয় চালান ও ভাউচার';
+  const invoiceTitle = isSale ? (lang === 'bn' ? 'ক্যাশ মেমো / বিক্রয় চালান' : 'CASH MEMO / SALE INVOICE') : (lang === 'bn' ? 'ক্রয় চালান ও ভাউচার' : 'PURCHASE VOUCHER');
   const paidField = isSale ? data.receivedAmount : data.paidAmount;
 
   const handlePrint = () => {
@@ -17,24 +19,24 @@ export default function InvoiceModal({ isOpen, onClose, data, type = 'sale', com
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full border border-slate-200 overflow-hidden">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full border border-slate-200 overflow-hidden max-h-[95vh] flex flex-col">
         
         {/* Modal Controls (No print) */}
-        <div className="bg-slate-800 text-white px-6 py-3.5 flex items-center justify-between no-print">
-          <span className="text-sm font-semibold flex items-center gap-2">
-            <span>ইনভয়েস প্রিভিউ ও প্রিন্ট</span>
-            <span className="text-xs bg-slate-700 px-2 py-0.5 rounded text-slate-300">
+        <div className="bg-slate-800 text-white px-4 sm:px-6 py-3 sm:py-3.5 flex items-center justify-between no-print shrink-0">
+          <span className="text-xs sm:text-sm font-semibold flex items-center gap-1.5 sm:gap-2 truncate">
+            <span>{lang === 'bn' ? 'ইনভয়েস প্রিভিউ ও প্রিন্ট' : 'Invoice Preview & Print'}</span>
+            <span className="text-[11px] bg-slate-700 px-2 py-0.5 rounded text-slate-300">
               {data.id}
             </span>
           </span>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={handlePrint}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg shadow transition"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg shadow transition active:scale-95"
             >
-              <Printer className="w-4 h-4" />
-              <span>প্রিন্ট / PDF সেভ</span>
+              <Printer className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span>{t('printInvoice')}</span>
             </button>
             <button
               onClick={onClose}
@@ -45,144 +47,169 @@ export default function InvoiceModal({ isOpen, onClose, data, type = 'sale', com
           </div>
         </div>
 
-        {/* Printable Invoice Area */}
-        <div id="printable-invoice" className="p-8 text-slate-800 bg-white">
-          
-          {/* Header */}
-          <div className="border-b-2 border-slate-900 pb-4 mb-6">
-            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-              <div>
-                <div className="flex items-center gap-2.5">
-                  <div className="w-11 h-11 rounded-lg bg-emerald-700 flex items-center justify-center text-white font-bold shadow">
-                    <Building2 className="w-6 h-6" />
+        {/* Printable Invoice Area (Scrollable on mobile) */}
+        <div className="overflow-y-auto flex-1 p-4 sm:p-8 text-slate-800 bg-white touch-scroll">
+          <div id="printable-invoice">
+            {/* Header */}
+            <div className="border-b-2 border-slate-900 pb-4 mb-4 sm:mb-6">
+              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4">
+                <div>
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-lg bg-emerald-700 flex items-center justify-center text-white font-bold shadow shrink-0">
+                      <Building2 className="w-5 h-5 sm:w-6 sm:h-6" />
+                    </div>
+                    <div>
+                      <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 font-sans">
+                        {lang === 'bn' ? (company.name || t('companyName')) : t('companyName')}
+                      </h1>
+                      <p className="text-xs sm:text-sm font-semibold text-emerald-800">
+                        {lang === 'bn' ? (company.owner || t('ownerName')) : t('ownerName')}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h1 className="text-2xl font-black tracking-tight text-slate-900 font-sans">
-                      {company.name || 'আর.এস. পেপার এন্ড প্যাকেজিং'}
-                    </h1>
-                    <p className="text-sm font-semibold text-emerald-800">
-                      {company.owner || 'মোঃ মজনুর রহমান'}
-                    </p>
+                  <div className="text-[11px] sm:text-xs text-slate-600 mt-2 space-y-0.5">
+                    <p>{lang === 'bn' ? (company.address || t('address')) : t('address')}</p>
+                    <p>{t('mobile')}: <span className="font-semibold text-slate-900">{company.phone || '01711006211'}</span></p>
                   </div>
                 </div>
-                <div className="text-xs text-slate-600 mt-2 space-y-0.5">
-                  <p>{company.address || 'চাঁদপাড়া, কোটচাঁদপুর, ঝিনাইদহ'}</p>
-                  <p>মোবাইল: <span className="font-semibold text-slate-900">{company.phone || '01711006211'}</span></p>
-                </div>
-              </div>
 
-              <div className="sm:text-right">
-                <span className="inline-block px-3 py-1 bg-slate-900 text-white text-xs font-bold rounded uppercase tracking-wider mb-2">
-                  {invoiceTitle}
-                </span>
-                <div className="text-xs text-slate-600 space-y-0.5">
-                  <p><strong>চালান / মেমো নং:</strong> {data.id}</p>
-                  <p><strong>তারিখ:</strong> {formatDate(data.date)}</p>
-                  <p><strong>পেমেন্ট মাধ্যম:</strong> {data.paymentMethod || 'ক্যাশ'}</p>
+                <div className="sm:text-right pt-2 sm:pt-0 border-t sm:border-0 border-slate-100">
+                  <span className="inline-block px-2.5 sm:px-3 py-1 bg-slate-900 text-white text-[10px] sm:text-xs font-bold rounded uppercase tracking-wider mb-1 sm:mb-2">
+                    {invoiceTitle}
+                  </span>
+                  <div className="text-[11px] sm:text-xs text-slate-600 space-y-0.5">
+                    <p><strong>{t('invoiceNo')}:</strong> {data.id}</p>
+                    <p><strong>{t('invoiceDate')}:</strong> {formatDate(data.date)}</p>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Party Details (Customer / Supplier) */}
-          <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 mb-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-              <div>
-                <span className="text-slate-500 block mb-0.5">{partyTitle}:</span>
-                <span className="text-sm font-bold text-slate-900">{partyName}</span>
-                {partyPhone && <p className="text-slate-600 mt-0.5">মোবাইল: {partyPhone}</p>}
-              </div>
-              <div className="sm:text-right">
-                <span className="text-slate-500 block mb-0.5">লেনদেনের ধরন:</span>
-                <span className={`inline-block px-2.5 py-0.5 text-xs font-semibold rounded ${
-                  isSale ? 'bg-emerald-100 text-emerald-800' : 'bg-indigo-100 text-indigo-800'
-                }`}>
-                  {isSale ? 'পণ্য বিক্রয় (Customer Outward)' : 'পণ্য ক্রয় (Supplier Inward)'}
-                </span>
+            {/* Bill To / Party Details */}
+            <div className="bg-slate-50 p-3 sm:p-4 rounded-xl mb-4 sm:mb-6 border border-slate-200">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <span className="text-[10px] sm:text-xs text-slate-400 font-bold uppercase tracking-wider block mb-0.5">
+                    {t('billTo')}
+                  </span>
+                  <div className="text-base sm:text-lg font-bold text-slate-900">{partyName}</div>
+                  {partyPhone && (
+                    <div className="text-xs text-slate-600 mt-0.5">{t('mobile')}: {partyPhone}</div>
+                  )}
+                  {(data.customerAddress || data.supplierAddress) && (
+                    <div className="text-xs text-slate-500 mt-0.5">{data.customerAddress || data.supplierAddress}</div>
+                  )}
+                </div>
+
+                <div className="text-left sm:text-right pt-2 sm:pt-0 border-t sm:border-0 border-slate-200">
+                  <span className="text-[10px] sm:text-xs text-slate-400 font-bold uppercase tracking-wider block mb-0.5">
+                    {t('paymentMethod')}
+                  </span>
+                  <span className="inline-block px-2.5 py-0.5 bg-white border border-slate-200 text-slate-800 text-xs font-semibold rounded">
+                    {data.paymentMethod || t('cash')}
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Items Table */}
-          <div className="overflow-x-auto mb-6">
-            <table className="w-full text-left border-collapse text-xs">
-              <thead>
-                <tr className="border-y-2 border-slate-800 bg-slate-100 text-slate-800">
-                  <th className="py-2.5 px-3 font-bold w-12 text-center">নং</th>
-                  <th className="py-2.5 px-3 font-bold">পণ্যের বিবরণ (Paper Description)</th>
-                  <th className="py-2.5 px-3 font-bold text-right">পরিমাণ</th>
-                  <th className="py-2.5 px-3 font-bold text-right">দর (৳)</th>
-                  <th className="py-2.5 px-3 font-bold text-right">মোট টাকা (৳)</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200">
-                {(data.items || []).map((item, idx) => (
-                  <tr key={idx} className="hover:bg-slate-50/50">
-                    <td className="py-2.5 px-3 text-center text-slate-500">{idx + 1}</td>
-                    <td className="py-2.5 px-3">
-                      <strong className="text-slate-900 text-xs">
-                        {item.productType === 'tissue' ? '১. Tissue Paper (টিস্যু পেপার)' : '২. Cutting / News Paper (কাটিং/নিউজ পেপার)'}
-                      </strong>
-                    </td>
-                    <td className="py-2.5 px-3 text-right font-medium">
-                      {formatQty(item.quantity, item.unit || 'কেজি')}
-                    </td>
-                    <td className="py-2.5 px-3 text-right">
-                      {formatCurrency(item.rate)}
-                    </td>
-                    <td className="py-2.5 px-3 text-right font-bold text-slate-900">
-                      {formatCurrency(item.total)}
-                    </td>
+            {/* Product Table (Horizontal scroll wrapper for mobile) */}
+            <div className="overflow-x-auto touch-scroll mb-4 sm:mb-6">
+              <table className="w-full text-left border-collapse text-xs sm:text-sm min-w-[500px]">
+                <thead>
+                  <tr className="border-b-2 border-slate-900 bg-slate-100 text-slate-900 font-bold">
+                    <th className="py-2.5 px-3 w-12 text-center">{t('sl')}</th>
+                    <th className="py-2.5 px-3">{t('description')}</th>
+                    <th className="py-2.5 px-3 text-right">{t('qty')}</th>
+                    <th className="py-2.5 px-3 text-right">{t('ratePerKg')}</th>
+                    <th className="py-2.5 px-3 text-right">{t('totalAmount')}</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-slate-200">
+                  {(data.items || []).map((item, index) => (
+                    <tr key={index}>
+                      <td className="py-2.5 px-3 text-center text-slate-500">{index + 1}</td>
+                      <td className="py-2.5 px-3">
+                        <strong className="text-slate-900">{item.name}</strong>
+                        <span className="block text-[11px] text-slate-400">
+                          {item.productType === 'tissue' ? t('tissuePaper') : t('cuttingNewsPaper')}
+                        </span>
+                      </td>
+                      <td className="py-2.5 px-3 text-right font-medium">
+                        {formatQty(item.quantity, item.unit || t('kg'))}
+                      </td>
+                      <td className="py-2.5 px-3 text-right text-slate-600">
+                        {formatCurrency(item.rate)}
+                      </td>
+                      <td className="py-2.5 px-3 text-right font-bold text-slate-900">
+                        {formatCurrency(item.total)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
 
-          {/* Total & Due Calculation Box */}
-          <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-10">
-            <div className="w-full sm:w-1/2 text-xs text-slate-600">
-              {data.notes && (
-                <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg">
-                  <strong className="block text-slate-700 mb-1">মন্তব্য / শর্তাবলী:</strong>
-                  <p>{data.notes}</p>
+            {/* Calculations Summary */}
+            <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-6">
+              <div className="text-xs text-slate-500 max-w-xs space-y-1">
+                {data.notes && (
+                  <p><strong className="text-slate-700">{t('notes')}:</strong> {data.notes}</p>
+                )}
+                <p className="italic text-[11px] text-slate-400">{t('invoiceNote')}</p>
+              </div>
+
+              <div className="w-full sm:w-64 space-y-1.5 text-xs sm:text-sm">
+                <div className="flex justify-between py-1 border-b border-slate-100">
+                  <span className="text-slate-600">{t('subTotal')}:</span>
+                  <span className="font-semibold">{formatCurrency(data.subTotal || data.grandTotal)}</span>
                 </div>
-              )}
+
+                {data.discount > 0 && (
+                  <div className="flex justify-between py-1 border-b border-slate-100 text-rose-600">
+                    <span>{t('discountRow')}:</span>
+                    <span>- {formatCurrency(data.discount)}</span>
+                  </div>
+                )}
+
+                <div className="flex justify-between py-1.5 border-b-2 border-slate-900 font-bold text-sm sm:text-base text-slate-900">
+                  <span>{t('netPayable')}:</span>
+                  <span>{formatCurrency(data.grandTotal)}</span>
+                </div>
+
+                <div className="flex justify-between py-1 text-emerald-700 font-semibold">
+                  <span>{t('amountPaid')}:</span>
+                  <span>{formatCurrency(paidField)}</span>
+                </div>
+
+                <div className="flex justify-between py-1 font-bold text-slate-900 bg-slate-50 px-2 rounded">
+                  <span className={data.dueAmount > 0 ? (isSale ? 'text-amber-800' : 'text-rose-800') : 'text-slate-500'}>
+                    {t('balanceDue')}:
+                  </span>
+                  <span className={data.dueAmount > 0 ? (isSale ? 'text-amber-800' : 'text-rose-800') : 'text-slate-500'}>
+                    {formatCurrency(data.dueAmount)}
+                  </span>
+                </div>
+              </div>
             </div>
 
-            <div className="w-full sm:w-5/12 bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-2 text-xs">
-              <div className="flex justify-between text-slate-600">
-                <span>সর্বমোট মূল্য:</span>
-                <span className="font-semibold text-slate-800">{formatCurrency(data.grandTotal)}</span>
+            {/* Signatures */}
+            <div className="pt-8 sm:pt-12 mt-4 sm:mt-8 border-t border-slate-200 grid grid-cols-2 gap-4 text-center">
+              <div>
+                <div className="w-28 sm:w-36 border-b border-slate-400 mx-auto mb-1"></div>
+                <p className="text-[11px] text-slate-500">{lang === 'bn' ? 'গ্রহীতার স্বাক্ষর' : 'Recipient Signature'}</p>
               </div>
-              <div className="flex justify-between text-emerald-700 font-medium">
-                <span>{isSale ? 'পরিশোধ / নগদ জমা:' : 'পরিশোধিত টাকা:'}</span>
-                <span>{formatCurrency(paidField)}</span>
+              <div>
+                <div className="w-28 sm:w-36 border-b border-slate-400 mx-auto mb-1"></div>
+                <p className="text-[11px] font-bold text-slate-800">{lang === 'bn' ? (company.name || t('companyName')) : t('companyName')}</p>
+                <p className="text-[11px] text-slate-600">{lang === 'bn' ? (company.owner || t('ownerName')) : t('ownerName')}</p>
               </div>
-              <div className="border-t border-slate-300 pt-2 flex justify-between font-bold text-sm">
-                <span className={data.dueAmount > 0 ? 'text-rose-700' : 'text-slate-800'}>
-                  {isSale ? 'বাকি (কাস্টমার থেকে পাওনা):' : 'বাকি (সাপ্লায়ার আর পাবে):'}
-                </span>
-                <span className={data.dueAmount > 0 ? 'text-rose-700' : 'text-slate-800'}>
-                  {formatCurrency(data.dueAmount)}
-                </span>
-              </div>
+            </div>
+
+            {/* Footer message */}
+            <div className="mt-6 pt-4 text-center text-[10px] text-slate-400 border-t border-dashed border-slate-200">
+              {t('thankYou')}
             </div>
           </div>
-
-          {/* Signatures */}
-          <div className="grid grid-cols-2 gap-8 pt-12 border-t border-dashed border-slate-300 text-xs">
-            <div className="text-center">
-              <div className="border-t border-slate-400 w-44 mx-auto mb-1"></div>
-              <p className="text-slate-600">গ্রাহক / প্রাপকের স্বাক্ষর</p>
-            </div>
-            <div className="text-center">
-              <div className="border-t border-slate-400 w-48 mx-auto mb-1"></div>
-              <p className="text-slate-800 font-semibold">{company.name || 'আর.এস. পেপার এন্ড প্যাকেজিং'}</p>
-              <p className="text-[11px] text-slate-600">{company.owner || 'মোঃ মজনুর রহমান'}</p>
-            </div>
-          </div>
-
         </div>
 
       </div>

@@ -118,7 +118,7 @@ export default function App() {
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-3.5 sm:py-6">
         
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20">
@@ -134,42 +134,42 @@ export default function App() {
 
             {/* TAB 1: DASHBOARD */}
             {activeTab === 'dashboard' && (
-              <div className="space-y-6">
+              <div className="space-y-4 sm:space-y-6">
                 {/* Real-time Godown Stock Section */}
                 <StockOverview stats={stats} onRefresh={fetchData} />
 
                 {/* Quick Action Panels */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="bg-gradient-to-br from-indigo-900 to-indigo-800 rounded-2xl p-6 text-white shadow-md flex items-center justify-between">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+                  <div className="bg-gradient-to-br from-indigo-900 to-indigo-800 rounded-2xl p-4 sm:p-6 text-white shadow-md flex items-center justify-between">
                     <div>
                       <span className="px-2.5 py-1 text-xs font-semibold bg-white/20 rounded-md">{t('purchaseMgmt')}</span>
-                      <h3 className="text-lg font-bold mt-2">{t('newPaperSupply')}</h3>
+                      <h3 className="text-base sm:text-lg font-bold mt-2">{t('newPaperSupply')}</h3>
                       <p className="text-xs text-indigo-200 mt-1 max-w-xs">{t('purchasePanelDesc')}</p>
                       <button
                         onClick={() => setPurchaseModalState({ isOpen: true, initialParty: null })}
-                        className="mt-4 px-4 py-2 bg-white text-indigo-900 rounded-xl text-xs font-bold shadow hover:bg-indigo-50 transition"
+                        className="mt-3 sm:mt-4 px-4 py-2 bg-white text-indigo-900 rounded-xl text-xs font-bold shadow hover:bg-indigo-50 transition active:scale-95"
                       >
                         {t('newPurchaseCTA')}
                       </button>
                     </div>
-                    <div className="hidden sm:flex w-16 h-16 rounded-2xl bg-white/10 items-center justify-center">
+                    <div className="hidden sm:flex w-16 h-16 rounded-2xl bg-white/10 items-center justify-center shrink-0">
                       <ShoppingBag className="w-8 h-8 text-indigo-200" />
                     </div>
                   </div>
 
-                  <div className="bg-gradient-to-br from-emerald-800 to-teal-900 rounded-2xl p-6 text-white shadow-md flex items-center justify-between">
+                  <div className="bg-gradient-to-br from-emerald-800 to-teal-900 rounded-2xl p-4 sm:p-6 text-white shadow-md flex items-center justify-between">
                     <div>
                       <span className="px-2.5 py-1 text-xs font-semibold bg-white/20 rounded-md">{t('saleMgmt')}</span>
-                      <h3 className="text-lg font-bold mt-2">{t('newPaperSale')}</h3>
+                      <h3 className="text-base sm:text-lg font-bold mt-2">{t('newPaperSale')}</h3>
                       <p className="text-xs text-emerald-200 mt-1 max-w-xs">{t('salePanelDesc')}</p>
                       <button
                         onClick={() => setSaleModalState({ isOpen: true, initialParty: null })}
-                        className="mt-4 px-4 py-2 bg-white text-emerald-900 rounded-xl text-xs font-bold shadow hover:bg-emerald-50 transition"
+                        className="mt-3 sm:mt-4 px-4 py-2 bg-white text-emerald-900 rounded-xl text-xs font-bold shadow hover:bg-emerald-50 transition active:scale-95"
                       >
                         {t('newSaleCTA')}
                       </button>
                     </div>
-                    <div className="hidden sm:flex w-16 h-16 rounded-2xl bg-white/10 items-center justify-center">
+                    <div className="hidden sm:flex w-16 h-16 rounded-2xl bg-white/10 items-center justify-center shrink-0">
                       <ShoppingCart className="w-8 h-8 text-emerald-200" />
                     </div>
                   </div>
