@@ -5,7 +5,7 @@ const translations = {
   en: {
     // ── Company / Branding ──
     companyName: 'R.S. Paper & Packaging',
-    ownerName: 'Md. Maznur Rahman',
+    ownerName: 'Md. Moznur Rahman',
     address: 'Chandpara, Kotchandpur, Jhenaidah',
     mobile: 'Mobile',
 

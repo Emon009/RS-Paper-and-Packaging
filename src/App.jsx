@@ -15,7 +15,7 @@ import { useLanguage } from './i18n/LanguageContext';
 
 
 export default function App() {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [stats, setStats] = useState(null);
   const [purchases, setPurchases] = useState([]);
@@ -269,10 +269,10 @@ export default function App() {
       {/* Footer */}
       <footer className="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-500 no-print space-y-1">
         <p>
-          © {new Date().getFullYear()} <strong>{company.name || t('companyName')}</strong> • <strong>{company.owner || t('ownerName')}</strong>
+          © {new Date().getFullYear()} <strong>{lang === 'bn' ? (company.name || t('companyName')) : t('companyName')}</strong> • <strong>{lang === 'bn' ? (company.owner || t('ownerName')) : t('ownerName')}</strong>
         </p>
         <p className="text-slate-400">
-          {company.address || t('address')} | {t('mobile')}: <span className="text-slate-600 font-medium">{company.phone || '01711006211'}</span>
+          {lang === 'bn' ? (company.address || t('address')) : t('address')} | {t('mobile')}: <span className="text-slate-600 font-medium">{company.phone || '01711006211'}</span>
         </p>
       </footer>
 
