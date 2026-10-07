@@ -1,8 +1,10 @@
 import React from 'react';
 import { Package, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, Layers, AlertCircle } from 'lucide-react';
 import { formatCurrency, formatQty } from '../utils/format';
+import { useLanguage } from '../i18n/LanguageContext';
 
 export default function StatsCards({ stats, onNavigate }) {
+  const { t } = useLanguage();
   if (!stats) return null;
 
   const { stock, finance } = stats;
@@ -21,21 +23,21 @@ export default function StatsCards({ stats, onNavigate }) {
         <div className="relative">
           <div className="flex items-center justify-between mb-3">
             <span className="px-2.5 py-1 text-xs font-semibold bg-sky-100 text-sky-800 rounded-md">
-              টিস্যু পেপার স্টক
+              {t('tissuePaperStock')}
             </span>
             <div className="w-8 h-8 rounded-lg bg-sky-500 text-white flex items-center justify-center shadow-sm">
               <Package className="w-4 h-4" />
             </div>
           </div>
           <div className="text-2xl font-bold text-slate-800 tracking-tight">
-            {formatQty(tissue.currentStock, 'কেজি')}
+            {formatQty(tissue.currentStock, t('kg'))}
           </div>
           <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-            <span>ক্রয়: <strong className="text-slate-700">{formatQty(tissue.purchasedQty, '')}</strong></span>
-            <span>বিক্রয়: <strong className="text-slate-700">{formatQty(tissue.soldQty, '')}</strong></span>
+            <span>{t('purchased')}: <strong className="text-slate-700">{formatQty(tissue.purchasedQty, '')}</strong></span>
+            <span>{t('sold')}: <strong className="text-slate-700">{formatQty(tissue.soldQty, '')}</strong></span>
           </div>
           <p className="mt-1 text-[11px] text-sky-700 font-medium">
-            মজুত মূল্য: ~ {formatCurrency(tissue.estimatedStockValue)}
+            {t('stockValue')}: ~ {formatCurrency(tissue.estimatedStockValue)}
           </p>
         </div>
       </div>
@@ -49,26 +51,26 @@ export default function StatsCards({ stats, onNavigate }) {
         <div className="relative">
           <div className="flex items-center justify-between mb-3">
             <span className="px-2.5 py-1 text-xs font-semibold bg-amber-100 text-amber-800 rounded-md">
-              কাটিং / নিউজ পেপার স্টক
+              {t('cuttingNewsPaperStock')}
             </span>
             <div className="w-8 h-8 rounded-lg bg-amber-500 text-white flex items-center justify-center shadow-sm">
               <Package className="w-4 h-4" />
             </div>
           </div>
           <div className="text-2xl font-bold text-slate-800 tracking-tight">
-            {formatQty(cutting.currentStock, 'কেজি')}
+            {formatQty(cutting.currentStock, t('kg'))}
           </div>
           <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-            <span>ক্রয়: <strong className="text-slate-700">{formatQty(cutting.purchasedQty, '')}</strong></span>
-            <span>বিক্রয়: <strong className="text-slate-700">{formatQty(cutting.soldQty, '')}</strong></span>
+            <span>{t('purchased')}: <strong className="text-slate-700">{formatQty(cutting.purchasedQty, '')}</strong></span>
+            <span>{t('sold')}: <strong className="text-slate-700">{formatQty(cutting.soldQty, '')}</strong></span>
           </div>
           <p className="mt-1 text-[11px] text-amber-700 font-medium">
-            মজুত মূল্য: ~ {formatCurrency(cutting.estimatedStockValue)}
+            {t('stockValue')}: ~ {formatCurrency(cutting.estimatedStockValue)}
           </p>
         </div>
       </div>
 
-      {/* 3. Customer Due (আমাদের পাওনা) */}
+      {/* 3. Customer Receivable */}
       <div 
         onClick={() => onNavigate('ledger')}
         className="bg-white rounded-xl p-5 border border-emerald-100 shadow-sm hover:shadow-md transition cursor-pointer relative overflow-hidden group"
@@ -77,7 +79,7 @@ export default function StatsCards({ stats, onNavigate }) {
         <div className="relative">
           <div className="flex items-center justify-between mb-3">
             <span className="px-2.5 py-1 text-xs font-semibold bg-emerald-100 text-emerald-800 rounded-md">
-              কাস্টমার পাওনা (বাকি)
+              {t('customerReceivable')}
             </span>
             <div className="w-8 h-8 rounded-lg bg-emerald-500 text-white flex items-center justify-center shadow-sm">
               <ArrowDownRight className="w-4 h-4" />
@@ -87,15 +89,15 @@ export default function StatsCards({ stats, onNavigate }) {
             {formatCurrency(finance?.totalCustomerReceivable)}
           </div>
           <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-            <span>মোট বিক্রয়: <strong className="text-slate-700">{formatCurrency(finance?.totalSaleAmount)}</strong></span>
+            <span>{t('totalSales')}: <strong className="text-slate-700">{formatCurrency(finance?.totalSaleAmount)}</strong></span>
           </div>
           <p className="mt-1 text-[11px] text-emerald-600 font-medium">
-            কাস্টমাররা এই টাকা আমাদের দিবে
+            {t('customerOwesUs')}
           </p>
         </div>
       </div>
 
-      {/* 4. Supplier Payable (সাপ্লায়ার আমাদের কাছে পাবে / দেনা) */}
+      {/* 4. Supplier Payable */}
       <div 
         onClick={() => onNavigate('ledger')}
         className="bg-white rounded-xl p-5 border border-rose-100 shadow-sm hover:shadow-md transition cursor-pointer relative overflow-hidden group"
@@ -104,7 +106,7 @@ export default function StatsCards({ stats, onNavigate }) {
         <div className="relative">
           <div className="flex items-center justify-between mb-3">
             <span className="px-2.5 py-1 text-xs font-semibold bg-rose-100 text-rose-800 rounded-md">
-              সাপ্লায়ার দেনা (বাকি)
+              {t('supplierPayable')}
             </span>
             <div className="w-8 h-8 rounded-lg bg-rose-500 text-white flex items-center justify-center shadow-sm">
               <ArrowUpRight className="w-4 h-4" />
@@ -114,10 +116,10 @@ export default function StatsCards({ stats, onNavigate }) {
             {formatCurrency(finance?.totalSupplierPayable)}
           </div>
           <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-            <span>মোট ক্রয়: <strong className="text-slate-700">{formatCurrency(finance?.totalPurchaseAmount)}</strong></span>
+            <span>{t('totalPurchases')}: <strong className="text-slate-700">{formatCurrency(finance?.totalPurchaseAmount)}</strong></span>
           </div>
           <p className="mt-1 text-[11px] text-rose-600 font-medium">
-            সাপ্লায়ারদের এই টাকা আমাদের পরিশোধ করতে হবে
+            {t('weOweSupplier')}
           </p>
         </div>
       </div>

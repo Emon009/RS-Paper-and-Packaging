@@ -19,8 +19,10 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { formatCurrency } from '../utils/format';
+import { useLanguage } from '../i18n/LanguageContext';
 
 export default function PartyAccountsView({ onOpenPartyAccount }) {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState('customers');
   const [customers, setCustomers] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
@@ -29,7 +31,7 @@ export default function PartyAccountsView({ onOpenPartyAccount }) {
 
   // Manual Add Modal State
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [formType, setFormType] = useState('customer'); // 'customer' | 'supplier'
+  const [formType, setFormType] = useState('customer');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
@@ -44,10 +46,8 @@ export default function PartyAccountsView({ onOpenPartyAccount }) {
         fetch('/api/customers'),
         fetch('/api/suppliers')
       ]);
-
       const custData = await custRes.json();
       const suppData = await suppRes.json();
-
       if (custData.success) setCustomers(custData.customers || []);
       if (suppData.success) setSuppliers(suppData.suppliers || []);
     } catch (err) {
@@ -74,39 +74,29 @@ export default function PartyAccountsView({ onOpenPartyAccount }) {
   const handleManualSave = async (e) => {
     e.preventDefault();
     if (!name.trim()) {
-      setErrorMsg('নাম আবশ্যক');
+      setErrorMsg(t('nameRequired'));
       return;
     }
-
     setSubmitting(true);
     setErrorMsg('');
     setSuccessMsg('');
-
     const endpoint = formType === 'customer' ? '/api/customers' : '/api/suppliers';
-
     try {
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: name.trim(),
-          phone: phone.trim(),
-          address: address.trim()
-        })
+        body: JSON.stringify({ name: name.trim(), phone: phone.trim(), address: address.trim() })
       });
-
       const data = await res.json();
       if (data.success) {
-        setSuccessMsg(formType === 'customer' ? 'কাস্টমার তথ্য সফলভাবে সেভ হয়েছে!' : 'সাপ্লায়ার তথ্য সফলভাবে সেভ হয়েছে!');
+        setSuccessMsg(formType === 'customer' ? t('customerSavedSuccess') : t('supplierSavedSuccess'));
         await fetchData();
-        setTimeout(() => {
-          setIsAddModalOpen(false);
-        }, 800);
+        setTimeout(() => setIsAddModalOpen(false), 800);
       } else {
-        setErrorMsg(data.message || 'সংরক্ষণ করা যায়নি');
+        setErrorMsg(data.message || t('serverError'));
       }
     } catch (err) {
-      setErrorMsg('সার্ভারে সংযোগ করা সম্ভব হয়নি');
+      setErrorMsg(t('serverError'));
     } finally {
       setSubmitting(false);
     }
@@ -121,7 +111,6 @@ export default function PartyAccountsView({ onOpenPartyAccount }) {
   const filteredCustomers = filter(customers);
   const filteredSuppliers = filter(suppliers);
 
-  // Totals
   const totalCustomerDue = customers.reduce((s, c) => s + (c.netDue || 0), 0);
   const totalSupplierDue = suppliers.reduce((s, s2) => s + (s2.netDue || 0), 0);
 
@@ -132,9 +121,9 @@ export default function PartyAccountsView({ onOpenPartyAccount }) {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="bg-gradient-to-br from-teal-700 to-emerald-800 text-white rounded-2xl p-5 shadow-md flex items-center justify-between">
           <div>
-            <span className="text-xs font-semibold text-white/70 uppercase tracking-wide">কাস্টমার মোট পাওনা</span>
+            <span className="text-xs font-semibold text-white/70 uppercase tracking-wide">{t('totalCustomerReceivable')}</span>
             <div className="text-3xl font-bold mt-1">{formatCurrency(totalCustomerDue)}</div>
-            <span className="text-xs text-white/60 mt-1 block">{customers.length} জন কাস্টমার</span>
+            <span className="text-xs text-white/60 mt-1 block">{customers.length} {t('customerLabel')}</span>
           </div>
           <div className="w-12 h-12 rounded-xl bg-white/15 flex items-center justify-center">
             <Users className="w-6 h-6 text-white" />
@@ -143,9 +132,9 @@ export default function PartyAccountsView({ onOpenPartyAccount }) {
 
         <div className="bg-gradient-to-br from-indigo-700 to-indigo-900 text-white rounded-2xl p-5 shadow-md flex items-center justify-between">
           <div>
-            <span className="text-xs font-semibold text-white/70 uppercase tracking-wide">সাপ্লায়ার মোট দেনা</span>
+            <span className="text-xs font-semibold text-white/70 uppercase tracking-wide">{t('totalSupplierDue')}</span>
             <div className="text-3xl font-bold mt-1">{formatCurrency(totalSupplierDue)}</div>
-            <span className="text-xs text-white/60 mt-1 block">{suppliers.length} জন সাপ্লায়ার</span>
+            <span className="text-xs text-white/60 mt-1 block">{suppliers.length} {t('supplierLabel')}</span>
           </div>
           <div className="w-12 h-12 rounded-xl bg-white/15 flex items-center justify-center">
             <Building2 className="w-6 h-6 text-white" />
@@ -165,7 +154,7 @@ export default function PartyAccountsView({ onOpenPartyAccount }) {
             }`}
           >
             <Users className="w-3.5 h-3.5" />
-            কাস্টমার খাতা ({customers.length})
+            {t('customerLedger')} ({customers.length})
           </button>
 
           <button
@@ -177,7 +166,7 @@ export default function PartyAccountsView({ onOpenPartyAccount }) {
             }`}
           >
             <Building2 className="w-3.5 h-3.5" />
-            সাপ্লায়ার খাতা ({suppliers.length})
+            {t('supplierLedger')} ({suppliers.length})
           </button>
         </div>
 
@@ -191,13 +180,13 @@ export default function PartyAccountsView({ onOpenPartyAccount }) {
             }`}
           >
             <PlusCircle className="w-3.5 h-3.5" />
-            {activeTab === 'customers' ? '+ কাস্টমার যুক্ত ও সেভ করুন' : '+ সাপ্লায়ার যুক্ত ও সেভ করুন'}
+            {activeTab === 'customers' ? t('addCustomer') : t('addSupplier')}
           </button>
 
           <div className="relative flex-1 sm:w-56">
             <input
               type="text"
-              placeholder="নাম বা ফোন দিয়ে খুঁজুন..."
+              placeholder={t('searchParty')}
               value={search}
               onChange={e => setSearch(e.target.value)}
               className="w-full pl-8 pr-3 py-2 text-xs border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400"
@@ -207,7 +196,7 @@ export default function PartyAccountsView({ onOpenPartyAccount }) {
           <button
             onClick={fetchData}
             className="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 transition"
-            title="রিফ্রেশ"
+            title={t('refresh')}
           >
             <RefreshCw className="w-4 h-4" />
           </button>
@@ -218,7 +207,7 @@ export default function PartyAccountsView({ onOpenPartyAccount }) {
       {loading ? (
         <div className="py-16 flex flex-col items-center text-slate-400 text-sm gap-2">
           <RefreshCw className="w-6 h-6 animate-spin" />
-          <span>লোড হচ্ছে...</span>
+          <span>{t('loadingData')}</span>
         </div>
       ) : (
         <>
@@ -228,8 +217,8 @@ export default function PartyAccountsView({ onOpenPartyAccount }) {
               {filteredCustomers.length === 0 ? (
                 <div className="col-span-full py-14 text-center text-slate-400 bg-white rounded-2xl border border-slate-200 border-dashed">
                   <Users className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                  <p className="text-sm font-medium">কোনো কাস্টমার পাওয়া যায়নি</p>
-                  <p className="text-xs mt-1">উপরের "+ কাস্টমার যুক্ত ও সেভ করুন" বাটনে ক্লিক করে ম্যানুয়ালি যুক্ত করুন।</p>
+                  <p className="text-sm font-medium">{t('noCustomersFound')}</p>
+                  <p className="text-xs mt-1">{t('addCustomerHint')}</p>
                 </div>
               ) : (
                 filteredCustomers.map(cust => (
@@ -238,6 +227,7 @@ export default function PartyAccountsView({ onOpenPartyAccount }) {
                     party={cust}
                     type="customer"
                     onClick={() => onOpenPartyAccount(cust, 'customer')}
+                    t={t}
                   />
                 ))
               )}
@@ -250,8 +240,8 @@ export default function PartyAccountsView({ onOpenPartyAccount }) {
               {filteredSuppliers.length === 0 ? (
                 <div className="col-span-full py-14 text-center text-slate-400 bg-white rounded-2xl border border-slate-200 border-dashed">
                   <Building2 className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                  <p className="text-sm font-medium">কোনো সাপ্লায়ার পাওয়া যায়নি</p>
-                  <p className="text-xs mt-1">উপরের "+ সাপ্লায়ার যুক্ত ও সেভ করুন" বাটনে ক্লিক করে ম্যানুয়ালি যুক্ত করুন।</p>
+                  <p className="text-sm font-medium">{t('noSuppliersFound')}</p>
+                  <p className="text-xs mt-1">{t('addSupplierHint')}</p>
                 </div>
               ) : (
                 filteredSuppliers.map(supp => (
@@ -260,6 +250,7 @@ export default function PartyAccountsView({ onOpenPartyAccount }) {
                     party={supp}
                     type="supplier"
                     onClick={() => onOpenPartyAccount(supp, 'supplier')}
+                    t={t}
                   />
                 ))
               )}
@@ -284,9 +275,9 @@ export default function PartyAccountsView({ onOpenPartyAccount }) {
                 </div>
                 <div>
                   <h3 className="text-base font-bold">
-                    {formType === 'customer' ? 'নতুন কাস্টমার তথ্য সেভ করুন' : 'নতুন সাপ্লায়ার তথ্য সেভ করুন'}
+                    {formType === 'customer' ? t('addNewCustomer') : t('addNewSupplier')}
                   </h3>
-                  <p className="text-[11px] text-white/80">ম্যানুয়াল এন্ট্রি ও নিশ্চিতকরণ</p>
+                  <p className="text-[11px] text-white/80">{t('manualEntryConfirm')}</p>
                 </div>
               </div>
               <button
@@ -322,7 +313,7 @@ export default function PartyAccountsView({ onOpenPartyAccount }) {
                     formType === 'customer' ? 'bg-teal-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
-                  কাস্টমার
+                  {t('customerLabel')}
                 </button>
                 <button
                   type="button"
@@ -331,19 +322,19 @@ export default function PartyAccountsView({ onOpenPartyAccount }) {
                     formType === 'supplier' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
-                  সাপ্লায়ার
+                  {t('supplierLabel')}
                 </button>
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  {formType === 'customer' ? 'কাস্টমারের নাম / প্রতিষ্ঠানের নাম *' : 'সাপ্লায়ারের নাম / মিলের নাম *'}
+                  {formType === 'customer' ? t('customerNameLabel') : t('supplierNameLabel')}
                 </label>
                 <div className="relative">
                   <input
                     type="text"
                     required
-                    placeholder={formType === 'customer' ? 'যেমন: আল-আমিন প্রিন্টার্স' : 'যেমন: মেঘনা পাল্প এন্ড পেপার মিলস'}
+                    placeholder={formType === 'customer' ? t('customerNamePlaceholder') : t('supplierNamePlaceholder')}
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     className="w-full pl-8 pr-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none"
@@ -353,13 +344,11 @@ export default function PartyAccountsView({ onOpenPartyAccount }) {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  মোবাইল নম্বর
-                </label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">{t('mobileNumber')}</label>
                 <div className="relative">
                   <input
                     type="text"
-                    placeholder="01xxxxxxxxx"
+                    placeholder={t('mobilePlaceholder')}
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     className="w-full pl-8 pr-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none"
@@ -369,13 +358,11 @@ export default function PartyAccountsView({ onOpenPartyAccount }) {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  ঠিকানা
-                </label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">{t('addressLabel')}</label>
                 <div className="relative">
                   <input
                     type="text"
-                    placeholder="যেমন: ঢাকা, আরামবাগ / যশোর"
+                    placeholder={t('addressPlaceholder')}
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
                     className="w-full pl-8 pr-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none"
@@ -390,7 +377,7 @@ export default function PartyAccountsView({ onOpenPartyAccount }) {
                   onClick={() => setIsAddModalOpen(false)}
                   className="px-4 py-2 text-xs font-medium text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition"
                 >
-                  বাতিল
+                  {t('cancel')}
                 </button>
                 <button
                   type="submit"
@@ -402,7 +389,7 @@ export default function PartyAccountsView({ onOpenPartyAccount }) {
                   }`}
                 >
                   <Save className="w-4 h-4" />
-                  {submitting ? 'সেভ হচ্ছে...' : 'ম্যানুয়ালি সেভ করুন'}
+                  {submitting ? t('saving') : t('manuallySave')}
                 </button>
               </div>
             </form>
@@ -415,7 +402,7 @@ export default function PartyAccountsView({ onOpenPartyAccount }) {
 }
 
 // ── Individual Party Card ──
-function PartyCard({ party, type, onClick }) {
+function PartyCard({ party, type, onClick, t }) {
   const isCustomer = type === 'customer';
   const hasDue = (party.netDue || 0) > 0;
 
@@ -455,7 +442,7 @@ function PartyCard({ party, type, onClick }) {
           <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${
             isCustomer ? 'bg-teal-100 text-teal-800' : 'bg-indigo-100 text-indigo-800'
           }`}>
-            {party.invoicesCount || 0} চালান
+            {party.invoicesCount || 0} {t('invoicesCount')}
           </span>
         </div>
 
@@ -469,7 +456,7 @@ function PartyCard({ party, type, onClick }) {
             <span className={`text-[10px] font-semibold uppercase tracking-wide ${
               hasDue ? (isCustomer ? 'text-amber-600' : 'text-rose-600') : 'text-emerald-600'
             }`}>
-              {isCustomer ? 'পাওনা বাকি' : 'দেনা বাকি'}
+              {t('amountDue')}
             </span>
             <div className={`text-base font-bold mt-0.5 ${
               hasDue ? (isCustomer ? 'text-amber-800' : 'text-rose-800') : 'text-emerald-700'
@@ -488,7 +475,7 @@ function PartyCard({ party, type, onClick }) {
         <div className="flex items-center gap-3 text-[11px] text-slate-500">
           <span className="flex items-center gap-1">
             <BookOpen className="w-3 h-3" />
-            খাতা দেখুন
+            {t('viewAccount')}
           </span>
         </div>
         <ChevronRight className={`w-4 h-4 text-slate-300 transition group-hover:translate-x-0.5 ${

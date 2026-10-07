@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ShoppingBag, ShoppingCart, Search, Eye, Trash2, Calendar, FileText } from 'lucide-react';
 import { formatCurrency, formatQty, formatDate } from '../utils/format';
+import { useLanguage } from '../i18n/LanguageContext';
 
 export default function TransactionHistory({ 
   purchases = [], 
@@ -9,6 +10,7 @@ export default function TransactionHistory({
   onDeleteTransaction,
   mode = 'all' // 'all' | 'purchases' | 'sales'
 }) {
+  const { t } = useLanguage();
   const [filterType, setFilterType] = useState(mode);
   const [search, setSearch] = useState('');
 
@@ -21,7 +23,7 @@ export default function TransactionHistory({
     combined.push(...sales.map(s => ({ ...s, txnType: 'sale' })));
   }
 
-  // Sort by date or id newest first
+  // Sort by date newest first
   combined.sort((a, b) => new Date(b.date || b.createdAt) - new Date(a.date || a.createdAt));
 
   const filtered = combined.filter(item => {
@@ -31,6 +33,12 @@ export default function TransactionHistory({
     return name.includes(q) || id.includes(q);
   });
 
+  const modeTitle = mode === 'purchases'
+    ? t('rawMaterialPurchaseList')
+    : mode === 'sales'
+      ? t('productSaleList')
+      : t('recentTransactions');
+
   return (
     <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
       
@@ -38,11 +46,9 @@ export default function TransactionHistory({
       <div className="p-4 sm:p-5 border-b border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-50/50">
         <div className="flex items-center gap-2">
           <FileText className="w-5 h-5 text-slate-700" />
-          <h3 className="font-bold text-slate-800 text-sm sm:text-base">
-            {mode === 'purchases' ? 'পেপার ক্রয়ের রেকর্ড সমূহ' : mode === 'sales' ? 'পেপার বিক্রয়ের রেকর্ড সমূহ' : 'সকল লেনদেন ও চালান ইতিহাস'}
-          </h3>
+          <h3 className="font-bold text-slate-800 text-sm sm:text-base">{modeTitle}</h3>
           <span className="text-xs font-semibold px-2 py-0.5 bg-slate-200 text-slate-700 rounded-full">
-            {filtered.length} টি
+            {filtered.length}
           </span>
         </div>
 
@@ -55,7 +61,7 @@ export default function TransactionHistory({
                   filterType === 'all' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600'
                 }`}
               >
-                সব
+                {t('lang') === 'bn' ? 'সব' : 'All'}
               </button>
               <button
                 onClick={() => setFilterType('purchases')}
@@ -63,7 +69,7 @@ export default function TransactionHistory({
                   filterType === 'purchases' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-600'
                 }`}
               >
-                ক্রয় (Purchases)
+                {t('purchase')}
               </button>
               <button
                 onClick={() => setFilterType('sales')}
@@ -71,7 +77,7 @@ export default function TransactionHistory({
                   filterType === 'sales' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-600'
                 }`}
               >
-                বিক্রি (Sales)
+                {t('sale')}
               </button>
             </div>
           )}
@@ -79,7 +85,7 @@ export default function TransactionHistory({
           <div className="relative flex-1 sm:w-60">
             <input
               type="text"
-              placeholder="আইডি বা নাম দিয়ে খুঁজুন..."
+              placeholder={t('searchParty')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-8 pr-3 py-1.5 text-xs bg-white border border-slate-300 rounded-lg outline-none focus:ring-1 focus:ring-slate-400"
@@ -94,20 +100,20 @@ export default function TransactionHistory({
         <table className="w-full text-left text-xs">
           <thead>
             <tr className="bg-slate-100/70 border-b border-slate-200 text-slate-700 font-bold">
-              <th className="py-3 px-4">আইডি ও তারিখ</th>
-              <th className="py-3 px-4">সাপ্লায়ার / কাস্টমার</th>
-              <th className="py-3 px-4">পেপার ও পরিমাণ (Quantity)</th>
-              <th className="py-3 px-4 text-right">সর্বমোট মূল্য</th>
-              <th className="py-3 px-4 text-right">পরিশোধ/জমা</th>
-              <th className="py-3 px-4 text-right">বাকি টাকা</th>
-              <th className="py-3 px-4 text-center">মেমো / অ্যাকশন</th>
+              <th className="py-3 px-4">ID & {t('date')}</th>
+              <th className="py-3 px-4">{t('party')}</th>
+              <th className="py-3 px-4">{t('items')} & {t('quantity')}</th>
+              <th className="py-3 px-4 text-right">{t('amount')}</th>
+              <th className="py-3 px-4 text-right">{t('paid')}</th>
+              <th className="py-3 px-4 text-right">{t('due')}</th>
+              <th className="py-3 px-4 text-center">{t('actions')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {filtered.length === 0 ? (
               <tr>
                 <td colSpan="7" className="py-8 text-center text-slate-400">
-                  কোন লেনদেন তথ্য পাওয়া যায়নি
+                  {t('noTransactions')}
                 </td>
               </tr>
             ) : (
@@ -116,7 +122,6 @@ export default function TransactionHistory({
                 const partyName = isSale ? item.customerName : item.supplierName;
                 const paid = isSale ? item.receivedAmount : item.paidAmount;
 
-                // Extract tissue and cutting/news quantities
                 const tissueItem = (item.items || []).find(i => i.productType === 'tissue');
                 const cuttingItem = (item.items || []).find(i => i.productType === 'cutting_news');
 
@@ -132,7 +137,7 @@ export default function TransactionHistory({
                         <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
                           isSale ? 'bg-emerald-100 text-emerald-800' : 'bg-indigo-100 text-indigo-800'
                         }`}>
-                          {isSale ? 'বিক্রয়' : 'ক্রয়'}
+                          {isSale ? t('sale') : t('purchase')}
                         </span>
                         <strong className="text-slate-900">{partyName}</strong>
                       </div>
@@ -148,13 +153,13 @@ export default function TransactionHistory({
                         {tissueItem && (
                           <div className="flex items-center gap-1.5 text-sky-800 font-medium text-[11px]">
                             <span className="w-1.5 h-1.5 rounded-full bg-sky-500"></span>
-                            <span>টিস্যু: <strong>{formatQty(tissueItem.quantity, tissueItem.unit || 'কেজি')}</strong> (@ {formatCurrency(tissueItem.rate)})</span>
+                            <span>Tissue: <strong>{formatQty(tissueItem.quantity, tissueItem.unit || t('kg'))}</strong> (@ {formatCurrency(tissueItem.rate)})</span>
                           </div>
                         )}
                         {cuttingItem && (
                           <div className="flex items-center gap-1.5 text-amber-800 font-medium text-[11px]">
                             <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-                            <span>কাটিং: <strong>{formatQty(cuttingItem.quantity, cuttingItem.unit || 'কেজি')}</strong> (@ {formatCurrency(cuttingItem.rate)})</span>
+                            <span>Cutting: <strong>{formatQty(cuttingItem.quantity, cuttingItem.unit || t('kg'))}</strong> (@ {formatCurrency(cuttingItem.rate)})</span>
                           </div>
                         )}
                       </div>
@@ -178,15 +183,19 @@ export default function TransactionHistory({
                       <div className="flex items-center justify-center gap-1">
                         <button
                           onClick={() => onViewInvoice(item, item.txnType)}
-                          title="চালান / মেমো দেখুন ও প্রিন্ট করুন"
+                          title={t('viewInvoice')}
                           className="p-1.5 text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 rounded-lg transition"
                         >
                           <Eye className="w-4 h-4" />
                         </button>
 
                         <button
-                          onClick={() => onDeleteTransaction(item.id, item.txnType)}
-                          title="রেকর্ড মুছুন"
+                          onClick={() => {
+                            if (window.confirm(t('confirmDelete'))) {
+                              onDeleteTransaction(item.id, item.txnType);
+                            }
+                          }}
+                          title={t('delete')}
                           className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition"
                         >
                           <Trash2 className="w-4 h-4" />
