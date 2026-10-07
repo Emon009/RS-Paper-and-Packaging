@@ -129,14 +129,23 @@ export default function LedgerView({ onSettlePayment, onOpenPartyFolder }) {
                 filteredCustomers.map((cust, idx) => (
                   <div key={idx} className="p-3.5 space-y-2 hover:bg-slate-50 transition">
                     <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <h4 className="font-bold text-slate-900 text-sm truncate">{cust.name}</h4>
-                        {cust.phone && (
-                          <span className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
-                            <Phone className="w-3 h-3 text-slate-400" />
-                            {cust.phone}
-                          </span>
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        {cust.photo ? (
+                          <img src={cust.photo} alt={cust.name} className="w-8 h-8 rounded-lg object-cover border border-slate-200 shrink-0 shadow-xs" />
+                        ) : (
+                          <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold text-xs shrink-0">
+                            {cust.name?.charAt(0) || 'C'}
+                          </div>
                         )}
+                        <div className="min-w-0">
+                          <h4 className="font-bold text-slate-900 text-sm truncate">{cust.name}</h4>
+                          {cust.phone && (
+                            <span className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
+                              <Phone className="w-3 h-3 text-slate-400" />
+                              {cust.phone}
+                            </span>
+                          )}
+                        </div>
                       </div>
                       <div className="text-right shrink-0">
                         <span className="text-[10px] text-slate-400 block uppercase font-medium">{t('amountDue')}</span>
@@ -214,7 +223,16 @@ export default function LedgerView({ onSettlePayment, onOpenPartyFolder }) {
                     filteredCustomers.map((cust, idx) => (
                       <tr key={idx} className="hover:bg-slate-50/80 transition">
                         <td className="py-3 px-4 font-bold text-slate-900 text-sm">
-                          {cust.name}
+                          <div className="flex items-center gap-2.5">
+                            {cust.photo ? (
+                              <img src={cust.photo} alt={cust.name} className="w-7 h-7 rounded-lg object-cover border border-slate-200 shrink-0 shadow-xs" />
+                            ) : (
+                              <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold text-xs shrink-0">
+                                {cust.name?.charAt(0) || 'C'}
+                              </div>
+                            )}
+                            <span className="truncate">{cust.name}</span>
+                          </div>
                         </td>
                         <td className="py-3 px-4 text-slate-600">
                           {cust.phone || '—'}
@@ -289,14 +307,23 @@ export default function LedgerView({ onSettlePayment, onOpenPartyFolder }) {
                 filteredSuppliers.map((supp, idx) => (
                   <div key={idx} className="p-3.5 space-y-2 hover:bg-slate-50 transition">
                     <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <h4 className="font-bold text-slate-900 text-sm truncate">{supp.name}</h4>
-                        {supp.phone && (
-                          <span className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
-                            <Phone className="w-3 h-3 text-slate-400" />
-                            {supp.phone}
-                          </span>
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        {supp.photo ? (
+                          <img src={supp.photo} alt={supp.name} className="w-8 h-8 rounded-lg object-cover border border-slate-200 shrink-0 shadow-xs" />
+                        ) : (
+                          <div className="w-8 h-8 rounded-lg bg-rose-50 text-rose-700 flex items-center justify-center font-bold text-xs shrink-0">
+                            {supp.name?.charAt(0) || 'S'}
+                          </div>
                         )}
+                        <div className="min-w-0">
+                          <h4 className="font-bold text-slate-900 text-sm truncate">{supp.name}</h4>
+                          {supp.phone && (
+                            <span className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
+                              <Phone className="w-3 h-3 text-slate-400" />
+                              {supp.phone}
+                            </span>
+                          )}
+                        </div>
                       </div>
                       <div className="text-right shrink-0">
                         <span className="text-[10px] text-slate-400 block uppercase font-medium">{t('amountDue')}</span>
@@ -374,7 +401,16 @@ export default function LedgerView({ onSettlePayment, onOpenPartyFolder }) {
                     filteredSuppliers.map((supp, idx) => (
                       <tr key={idx} className="hover:bg-slate-50/80 transition">
                         <td className="py-3 px-4 font-bold text-slate-900 text-sm">
-                          {supp.name}
+                          <div className="flex items-center gap-2.5">
+                            {supp.photo ? (
+                              <img src={supp.photo} alt={supp.name} className="w-7 h-7 rounded-lg object-cover border border-slate-200 shrink-0 shadow-xs" />
+                            ) : (
+                              <div className="w-7 h-7 rounded-lg bg-rose-50 text-rose-700 flex items-center justify-center font-bold text-xs shrink-0">
+                                {supp.name?.charAt(0) || 'S'}
+                              </div>
+                            )}
+                            <span className="truncate">{supp.name}</span>
+                          </div>
                         </td>
                         <td className="py-3 px-4 text-slate-600">
                           {supp.phone || '—'}

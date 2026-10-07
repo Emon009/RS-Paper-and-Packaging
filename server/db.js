@@ -107,7 +107,16 @@ async function supabaseUpsert(table, payload) {
   if (!isSupabaseConfigured() || !supabase) return null;
   try {
     const { data, error } = await supabase.from(table).upsert(payload).select().single();
-    if (error) console.warn(`Supabase ${table} upsert error:`, error.message);
+    if (error) {
+      if (error.message?.includes('column') && payload.photo !== undefined) {
+        const fallbackPayload = { ...payload };
+        delete fallbackPayload.photo;
+        const { data: retryData, error: retryError } = await supabase.from(table).upsert(fallbackPayload).select().single();
+        if (retryError) console.warn(`Supabase ${table} retry upsert error:`, retryError.message);
+        return retryData;
+      }
+      console.warn(`Supabase ${table} upsert error:`, error.message);
+    }
     return data;
   } catch (err) {
     console.warn('Supabase upsert error:', err.message);
@@ -145,10 +154,10 @@ export async function loadData() {
     return {
       company: DEFAULT_DATA.company,
       customers: customers.map(c => ({
-        id: c.id, name: c.name, phone: c.phone || '', address: c.address || '', createdAt: c.created_at
+        id: c.id, name: c.name, phone: c.phone || '', address: c.address || '', photo: c.photo || '', createdAt: c.created_at
       })),
       suppliers: suppliers.map(s => ({
-        id: s.id, name: s.name, phone: s.phone || '', address: s.address || '', createdAt: s.created_at
+        id: s.id, name: s.name, phone: s.phone || '', address: s.address || '', photo: s.photo || '', createdAt: s.created_at
       })),
       purchases: purchases.map(p => ({
         id: p.id, date: p.date, supplierName: p.supplier_name, supplierPhone: p.supplier_phone || '',
@@ -261,7 +270,7 @@ export async function getDashboardStats() {
 // ==========================================
 // CUSTOMER ACCOUNTS (খাতা)
 // ==========================================
-export async function ensureCustomerExists(name, phone = '', address = '') {
+export async function ensureCustomerExists(name, phone = '', address = '', photo = '') {
   const trimmedName = name.trim();
   const data = await loadData();
   let customer = (data.customers || []).find(c => c.name.toLowerCase() === trimmedName.toLowerCase());
@@ -272,11 +281,12 @@ export async function ensureCustomerExists(name, phone = '', address = '') {
       name: trimmedName,
       phone: (phone || '').trim(),
       address: (address || '').trim(),
+      photo: (photo || '').trim(),
       createdAt: new Date().toISOString()
     };
     await supabaseUpsert('customers', {
       id: customer.id, name: customer.name, phone: customer.phone,
-      address: customer.address, created_at: customer.createdAt
+      address: customer.address, photo: customer.photo, created_at: customer.createdAt
     });
     if (!IS_VERCEL && localFallbackAvailable) {
       const localData = loadLocalData();
@@ -284,11 +294,27 @@ export async function ensureCustomerExists(name, phone = '', address = '') {
       localData.customers.push(customer);
       saveLocalData(localData);
     }
+  } else if (photo || phone || address) {
+    if (photo) customer.photo = photo.trim();
+    if (phone) customer.phone = phone.trim();
+    if (address) customer.address = address.trim();
+    await supabaseUpsert('customers', {
+      id: customer.id, name: customer.name, phone: customer.phone,
+      address: customer.address, photo: customer.photo, created_at: customer.createdAt
+    });
+    if (!IS_VERCEL && localFallbackAvailable) {
+      const localData = loadLocalData();
+      const idx = (localData.customers || []).findIndex(c => c.id === customer.id);
+      if (idx !== -1) {
+        localData.customers[idx] = customer;
+        saveLocalData(localData);
+      }
+    }
   }
   return customer;
 }
 
-export async function ensureSupplierExists(name, phone = '', address = '') {
+export async function ensureSupplierExists(name, phone = '', address = '', photo = '') {
   const trimmedName = name.trim();
   const data = await loadData();
   let supplier = (data.suppliers || []).find(s => s.name.toLowerCase() === trimmedName.toLowerCase());
@@ -299,11 +325,12 @@ export async function ensureSupplierExists(name, phone = '', address = '') {
       name: trimmedName,
       phone: (phone || '').trim(),
       address: (address || '').trim(),
+      photo: (photo || '').trim(),
       createdAt: new Date().toISOString()
     };
     await supabaseUpsert('suppliers', {
       id: supplier.id, name: supplier.name, phone: supplier.phone,
-      address: supplier.address, created_at: supplier.createdAt
+      address: supplier.address, photo: supplier.photo, created_at: supplier.createdAt
     });
     if (!IS_VERCEL && localFallbackAvailable) {
       const localData = loadLocalData();
@@ -311,8 +338,49 @@ export async function ensureSupplierExists(name, phone = '', address = '') {
       localData.suppliers.push(supplier);
       saveLocalData(localData);
     }
+  } else if (photo || phone || address) {
+    if (photo) supplier.photo = photo.trim();
+    if (phone) supplier.phone = phone.trim();
+    if (address) supplier.address = address.trim();
+    await supabaseUpsert('suppliers', {
+      id: supplier.id, name: supplier.name, phone: supplier.phone,
+      address: supplier.address, photo: supplier.photo, created_at: supplier.createdAt
+    });
+    if (!IS_VERCEL && localFallbackAvailable) {
+      const localData = loadLocalData();
+      const idx = (localData.suppliers || []).findIndex(s => s.id === supplier.id);
+      if (idx !== -1) {
+        localData.suppliers[idx] = supplier;
+        saveLocalData(localData);
+      }
+    }
   }
   return supplier;
+}
+
+export async function updatePartyPhoto(id, type = 'customer', photo = '') {
+  const table = type === 'customer' ? 'customers' : 'suppliers';
+  const data = await loadData();
+  const list = type === 'customer' ? (data.customers || []) : (data.suppliers || []);
+  const party = list.find(p => p.id === id || p.name.toLowerCase() === id.toLowerCase());
+  if (!party) return false;
+
+  party.photo = (photo || '').trim();
+  await supabaseUpsert(table, {
+    id: party.id, name: party.name, phone: party.phone,
+    address: party.address, photo: party.photo, created_at: party.createdAt
+  });
+
+  if (!IS_VERCEL && localFallbackAvailable) {
+    const localData = loadLocalData();
+    const targetList = type === 'customer' ? (localData.customers || []) : (localData.suppliers || []);
+    const idx = targetList.findIndex(p => p.id === party.id);
+    if (idx !== -1) {
+      targetList[idx].photo = party.photo;
+      saveLocalData(localData);
+    }
+  }
+  return true;
 }
 
 export async function getAllCustomerFolders() {

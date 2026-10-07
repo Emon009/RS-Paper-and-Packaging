@@ -23,7 +23,8 @@ import {
   deleteCustomer,
   deleteSupplier,
   exportAsSql,
-  verifyAdminPassword
+  verifyAdminPassword,
+  updatePartyPhoto
 } from './db.js';
 import { getSupabaseConfigStatus } from './supabaseClient.js';
 
@@ -35,7 +36,8 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Static assets (only in non-serverless environment)
 let fs;
@@ -124,7 +126,7 @@ function formatFlatCustomer(folder) {
   if (!folder || !folder.customer) return null;
   return {
     id: folder.customer.id, name: folder.customer.name, phone: folder.customer.phone,
-    address: folder.customer.address, createdAt: folder.customer.createdAt,
+    address: folder.customer.address, photo: folder.customer.photo || '', createdAt: folder.customer.createdAt,
     ...folder.summary,
     salesCount: (folder.sales || []).length, paymentsCount: (folder.payments || []).length
   };
@@ -134,7 +136,7 @@ function formatFlatSupplier(folder) {
   if (!folder || !folder.supplier) return null;
   return {
     id: folder.supplier.id, name: folder.supplier.name, phone: folder.supplier.phone,
-    address: folder.supplier.address, createdAt: folder.supplier.createdAt,
+    address: folder.supplier.address, photo: folder.supplier.photo || '', createdAt: folder.supplier.createdAt,
     ...folder.summary,
     purchasesCount: (folder.purchases || []).length, paymentsCount: (folder.payments || []).length
   };
@@ -173,10 +175,21 @@ app.get('/api/customers/:id', async (req, res) => {
 
 app.post('/api/customers', async (req, res) => {
   try {
-    const { name, phone, address } = req.body;
+    const { name, phone, address, photo } = req.body;
     if (!name?.trim()) return res.status(400).json({ success: false, message: 'কাস্টমারের নাম আবশ্যক' });
-    const customer = await ensureCustomerExists(name, phone, address);
+    const customer = await ensureCustomerExists(name, phone, address, photo);
     res.json({ success: true, message: 'নতুন কাস্টমার খাতা সফলভাবে তৈরি হয়েছে', customer });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.post('/api/customers/:id/photo', async (req, res) => {
+  try {
+    const { photo } = req.body;
+    const ok = await updatePartyPhoto(req.params.id, 'customer', photo);
+    if (!ok) return res.status(404).json({ success: false, message: 'কাস্টমার পাওয়া যায়নি' });
+    res.json({ success: true, message: 'কাস্টমার ছবি আপডেট হয়েছে', photo });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -225,10 +238,21 @@ app.get('/api/suppliers/:id', async (req, res) => {
 
 app.post('/api/suppliers', async (req, res) => {
   try {
-    const { name, phone, address } = req.body;
+    const { name, phone, address, photo } = req.body;
     if (!name?.trim()) return res.status(400).json({ success: false, message: 'সাপ্লায়ারের নাম আবশ্যক' });
-    const supplier = await ensureSupplierExists(name, phone, address);
+    const supplier = await ensureSupplierExists(name, phone, address, photo);
     res.json({ success: true, message: 'নতুন সাপ্লায়ার খাতা সফলভাবে তৈরি হয়েছে', supplier });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.post('/api/suppliers/:id/photo', async (req, res) => {
+  try {
+    const { photo } = req.body;
+    const ok = await updatePartyPhoto(req.params.id, 'supplier', photo);
+    if (!ok) return res.status(404).json({ success: false, message: 'সাপ্লায়ার পাওয়া যায়নি' });
+    res.json({ success: true, message: 'সাপ্লায়ার ছবি আপডেট হয়েছে', photo });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

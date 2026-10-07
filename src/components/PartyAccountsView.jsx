@@ -20,9 +20,10 @@ import {
 } from 'lucide-react';
 import { formatCurrency } from '../utils/format';
 import { useLanguage } from '../i18n/LanguageContext';
+import PhotoUpload from './PhotoUpload';
 
 export default function PartyAccountsView({ onOpenPartyAccount }) {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const [activeTab, setActiveTab] = useState('customers');
   const [customers, setCustomers] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
@@ -35,6 +36,7 @@ export default function PartyAccountsView({ onOpenPartyAccount }) {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
+  const [photo, setPhoto] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
@@ -66,6 +68,7 @@ export default function PartyAccountsView({ onOpenPartyAccount }) {
     setName('');
     setPhone('');
     setAddress('');
+    setPhoto('');
     setErrorMsg('');
     setSuccessMsg('');
     setIsAddModalOpen(true);
@@ -85,7 +88,7 @@ export default function PartyAccountsView({ onOpenPartyAccount }) {
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name.trim(), phone: phone.trim(), address: address.trim() })
+        body: JSON.stringify({ name: name.trim(), phone: phone.trim(), address: address.trim(), photo })
       });
       const data = await res.json();
       if (data.success) {
@@ -328,6 +331,18 @@ export default function PartyAccountsView({ onOpenPartyAccount }) {
                 </button>
               </div>
 
+              {/* Photo Upload with Auto Compression */}
+              <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-3">
+                <PhotoUpload
+                  photo={photo}
+                  onChange={setPhoto}
+                  type={formType}
+                  label={formType === 'customer' 
+                    ? (lang === 'bn' ? 'কাস্টমারের ছবি (অটো কম্প্রেস)' : 'Customer Photo (Auto-compress)')
+                    : (lang === 'bn' ? 'সাপ্লায়ারের ছবি (অটো কম্প্রেস)' : 'Supplier Photo (Auto-compress)')}
+                />
+              </div>
+
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
                   {formType === 'customer' ? t('customerNameLabel') : t('supplierNameLabel')}
@@ -419,13 +434,21 @@ function PartyCard({ party, type, onClick, t }) {
         {/* Top Row */}
         <div className="flex items-start justify-between gap-2 mb-2.5 sm:mb-3">
           <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
-            <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center transition shrink-0 ${
-              isCustomer
-                ? 'bg-teal-50 text-teal-700 group-hover:bg-teal-600 group-hover:text-white'
-                : 'bg-indigo-50 text-indigo-700 group-hover:bg-indigo-600 group-hover:text-white'
-            }`}>
-              {isCustomer ? <User className="w-4 h-4 sm:w-4.5 sm:h-4.5" /> : <Building2 className="w-4 h-4 sm:w-4.5 sm:h-4.5" />}
-            </div>
+            {party.photo ? (
+              <img
+                src={party.photo}
+                alt={party.name}
+                className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl object-cover border border-slate-200 shrink-0 shadow-xs"
+              />
+            ) : (
+              <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center transition shrink-0 ${
+                isCustomer
+                  ? 'bg-teal-50 text-teal-700 group-hover:bg-teal-600 group-hover:text-white'
+                  : 'bg-indigo-50 text-indigo-700 group-hover:bg-indigo-600 group-hover:text-white'
+              }`}>
+                {isCustomer ? <User className="w-4 h-4 sm:w-4.5 sm:h-4.5" /> : <Building2 className="w-4 h-4 sm:w-4.5 sm:h-4.5" />}
+              </div>
+            )}
             <div className="min-w-0">
               <h4 className={`font-bold text-slate-900 text-xs sm:text-sm transition truncate ${
                 isCustomer ? 'group-hover:text-teal-700' : 'group-hover:text-indigo-700'

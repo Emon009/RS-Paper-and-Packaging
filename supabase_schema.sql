@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS customers (
     name TEXT NOT NULL,
     phone TEXT,
     address TEXT,
+    photo TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -22,8 +23,13 @@ CREATE TABLE IF NOT EXISTS suppliers (
     name TEXT NOT NULL,
     phone TEXT,
     address TEXT,
+    photo TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- ফটো কলাম মাইগ্রেশন (যদি টেবিল ইতিমধ্যে তৈরি করা থাকে)
+ALTER TABLE customers ADD COLUMN IF NOT EXISTS photo TEXT;
+ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS photo TEXT;
 
 -- ৩. পেপার ক্রয় চালান টেবিল (Purchases Table)
 CREATE TABLE IF NOT EXISTS purchases (

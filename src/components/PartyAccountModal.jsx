@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   X,
   User,
@@ -14,10 +14,12 @@ import {
   CheckCircle2,
   Clock,
   FileText,
-  RefreshCw
+  RefreshCw,
+  Camera
 } from 'lucide-react';
 import { formatCurrency, formatQty, formatDate } from '../utils/format';
 import { useLanguage } from '../i18n/LanguageContext';
+import { compressImage } from '../utils/imageCompressor';
 
 export default function PartyAccountModal({
   isOpen,
@@ -31,6 +33,8 @@ export default function PartyAccountModal({
   const { t, lang } = useLanguage();
   const [details, setDetails] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [updatingPhoto, setUpdatingPhoto] = useState(false);
+  const fileInputRef = useRef(null);
 
   const isCustomer = type === 'customer';
 
@@ -48,6 +52,45 @@ export default function PartyAccountModal({
       })
       .catch(err => console.error(err))
       .finally(() => setLoading(false));
+  };
+
+  const handlePhotoUpdate = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const targetParty = details?.profile || partyInfo;
+    if (!targetParty) return;
+
+    setUpdatingPhoto(true);
+    try {
+      const compressed = await compressImage(file, {
+        maxWidth: 400,
+        maxHeight: 400,
+        quality: 0.75,
+        format: 'image/jpeg'
+      });
+      const targetId = targetParty.id || targetParty.name;
+      const endpoint = isCustomer
+        ? `/api/customers/${encodeURIComponent(targetId)}/photo`
+        : `/api/suppliers/${encodeURIComponent(targetId)}/photo`;
+
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ photo: compressed.dataUrl })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setDetails(prev => prev ? {
+          ...prev,
+          profile: { ...(prev.profile || {}), photo: compressed.dataUrl }
+        } : prev);
+      }
+    } catch (err) {
+      console.error('Error updating party photo:', err);
+    } finally {
+      setUpdatingPhoto(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
   };
 
   useEffect(() => {
@@ -95,8 +138,35 @@ export default function PartyAccountModal({
             : 'bg-gradient-to-r from-indigo-700 to-indigo-900'
         }`}>
           <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
-              {isCustomer ? <User className="w-5 h-5 text-white" /> : <Building2 className="w-5 h-5 text-white" />}
+            {/* Interactive Photo Avatar */}
+            <div className="relative group shrink-0">
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-white/15 overflow-hidden flex items-center justify-center cursor-pointer border border-white/20 hover:border-white transition relative shadow-sm"
+                title={lang === 'bn' ? 'ছবি পরিবর্তন বা আপলোড করতে ক্লিক করুন' : 'Click to change or upload photo'}
+              >
+                {profile.photo ? (
+                  <img src={profile.photo} alt={profile.name} className="w-full h-full object-cover" />
+                ) : (
+                  isCustomer ? <User className="w-5 h-5 text-white" /> : <Building2 className="w-5 h-5 text-white" />
+                )}
+                {/* Overlay camera icon on hover */}
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white">
+                  <Camera className="w-4 h-4" />
+                </div>
+                {updatingPhoto && (
+                  <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                    <RefreshCw className="w-4 h-4 text-white animate-spin" />
+                  </div>
+                )}
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handlePhotoUpdate}
+              />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
