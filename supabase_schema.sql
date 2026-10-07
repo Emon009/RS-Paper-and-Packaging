@@ -109,5 +109,5 @@ CREATE POLICY "Allow public read/write app_settings" ON app_settings FOR ALL USI
 
 -- ডিফল্ট অ্যাডমিন পাসওয়ার্ড এন্ট্রি
 INSERT INTO app_settings (key, value) 
-VALUES ('admin_password', 'RS01711006211#')
+VALUES ('admin_password', 'Mp01711006211$')
 ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;

@@ -46,7 +46,7 @@ DEFAULT_DATA = {
     email: 'contact@rspaperpackaging.com',
   },
   settings: {
-    admin_password: process.env.APP_PASSWORD || 'RS01711006211#'
+    admin_password: process.env.APP_PASSWORD || 'Mp01711006211$'
   },
   customers: [],
   suppliers: [],
@@ -591,7 +591,7 @@ export async function getAdminPassword() {
     return localData.settings.admin_password;
   }
 
-  return process.env.APP_PASSWORD || 'RS01711006211#';
+  return process.env.APP_PASSWORD || 'Mp01711006211$';
 }
 
 export async function verifyAdminPassword(inputPassword) {
