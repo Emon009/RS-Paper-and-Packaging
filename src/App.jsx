@@ -259,14 +259,6 @@ export default function App() {
                 </div>
 
 
-                {/* Recent Transactions Table */}
-                <TransactionHistory
-                  purchases={purchases}
-                  sales={sales}
-                  onViewInvoice={(item, type) => setInvoiceModal({ isOpen: true, data: item, type })}
-                  onDeleteTransaction={handleDeleteTransaction}
-                  mode="all"
-                />
               </div>
             )}
 
