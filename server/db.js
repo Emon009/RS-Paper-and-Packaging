@@ -1,4 +1,25 @@
+import crypto from 'crypto';
 import { supabase, isSupabaseConfigured } from './supabaseClient.js';
+
+const AUTH_SALT = process.env.AUTH_SALT || 'rs_paper_factory_sec_2026';
+// Cryptographic SHA-256 salted hash — plain text password is never stored or exposed
+const DEFAULT_ADMIN_HASH = '6ae04211db8b900910aacbc4be5866f921e8d54433ca6163d4321cb797050edd';
+
+export function hashPassword(plainPassword) {
+  if (!plainPassword || typeof plainPassword !== 'string') return '';
+  return crypto.createHash('sha256').update(plainPassword.trim() + ':' + AUTH_SALT).digest('hex');
+}
+
+function timingSafeCheck(a, b) {
+  try {
+    const bufA = Buffer.from(String(a));
+    const bufB = Buffer.from(String(b));
+    if (bufA.length !== bufB.length) return false;
+    return crypto.timingSafeEqual(bufA, bufB);
+  } catch {
+    return false;
+  }
+}
 
 // ==========================================
 // VERCEL/SUPABASE FIRST DATA LAYER
@@ -46,7 +67,7 @@ DEFAULT_DATA = {
     email: 'contact@rspaperpackaging.com',
   },
   settings: {
-    admin_password: process.env.APP_PASSWORD || 'Mp01711006211$'
+    admin_password_hash: process.env.APP_PASSWORD_HASH || DEFAULT_ADMIN_HASH
   },
   customers: [],
   suppliers: [],
@@ -637,51 +658,83 @@ export async function exportAsSql() {
 }
 
 // ==========================================
-// AUTHENTICATION & SETTINGS
+// AUTHENTICATION & SETTINGS (CRYPTOGRAPHIC SECURITY)
 // ==========================================
-export async function getAdminPassword() {
+export async function getAdminPasswordHash() {
   if (isSupabaseConfigured() && supabase) {
     try {
-      const { data, error } = await supabase
+      // 1. Check for modern hashed password
+      const { data: hashData } = await supabase
+        .from('app_settings')
+        .select('value')
+        .eq('key', 'admin_password_hash')
+        .single();
+      if (hashData?.value) return hashData.value;
+
+      // 2. Legacy check
+      const { data: legacyData } = await supabase
         .from('app_settings')
         .select('value')
         .eq('key', 'admin_password')
         .single();
-      if (!error && data?.value) {
-        return data.value;
-      }
+      if (legacyData?.value) return legacyData.value;
     } catch (e) {}
   }
 
   // Local fallback
   const localData = loadLocalData();
+  if (localData?.settings?.admin_password_hash) {
+    return localData.settings.admin_password_hash;
+  }
   if (localData?.settings?.admin_password) {
     return localData.settings.admin_password;
   }
 
-  return process.env.APP_PASSWORD || 'Mp01711006211$';
+  if (process.env.APP_PASSWORD_HASH) {
+    return process.env.APP_PASSWORD_HASH;
+  }
+  if (process.env.APP_PASSWORD) {
+    return hashPassword(process.env.APP_PASSWORD);
+  }
+
+  return DEFAULT_ADMIN_HASH;
 }
 
 export async function verifyAdminPassword(inputPassword) {
-  if (!inputPassword) return false;
-  const actualPassword = await getAdminPassword();
-  return inputPassword.trim() === actualPassword.trim();
+  if (!inputPassword || typeof inputPassword !== 'string') return false;
+  const trimmed = inputPassword.trim();
+  const inputHash = hashPassword(trimmed);
+  const storedValue = await getAdminPasswordHash();
+
+  // If stored value is 64-char SHA-256 hex string, compare securely with inputHash
+  if (/^[a-f0-9]{64}$/i.test(storedValue)) {
+    return timingSafeCheck(inputHash.toLowerCase(), storedValue.toLowerCase());
+  }
+
+  // Legacy fallback: if database had plain text, compare and auto-upgrade to hash!
+  if (timingSafeCheck(trimmed, storedValue)) {
+    await setAdminPassword(trimmed);
+    return true;
+  }
+
+  return false;
 }
 
 export async function setAdminPassword(newPassword) {
-  if (!newPassword) return false;
-  const trimmed = newPassword.trim();
+  if (!newPassword || typeof newPassword !== 'string') return false;
+  const hashed = hashPassword(newPassword.trim());
   if (isSupabaseConfigured() && supabase) {
     try {
       await supabase
         .from('app_settings')
-        .upsert({ key: 'admin_password', value: trimmed, updated_at: new Date().toISOString() });
+        .upsert({ key: 'admin_password_hash', value: hashed, updated_at: new Date().toISOString() });
     } catch (e) {}
   }
   if (!IS_VERCEL && localFallbackAvailable) {
     const localData = loadLocalData();
     if (!localData.settings) localData.settings = {};
-    localData.settings.admin_password = trimmed;
+    localData.settings.admin_password_hash = hashed;
+    delete localData.settings.admin_password; // purge plain text
     saveLocalData(localData);
   }
   return true;

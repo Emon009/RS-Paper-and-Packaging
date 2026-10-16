@@ -55,7 +55,7 @@ app.post('/api/seed-sample', (req, res) => {
   res.json({ success: true, message: 'Sample data checked' });
 });
 
-// ── Authentication Routes ──
+// ── Authentication & Security Protection ──
 const AUTH_SECRET = process.env.AUTH_SECRET || 'rs_paper_session_secret_2026';
 
 function generateAuthToken() {
@@ -63,16 +63,75 @@ function generateAuthToken() {
   return crypto.createHmac('sha256', AUTH_SECRET).update(salt).digest('hex');
 }
 
+// In-memory Brute Force Protection (5 attempts -> 15 min lock)
+const loginAttempts = new Map();
+const MAX_FAILED_ATTEMPTS = 5;
+const LOCKOUT_DURATION_MS = 15 * 60 * 1000;
+
+function getClientIp(req) {
+  const forwarded = req.headers['x-forwarded-for'];
+  if (forwarded) return forwarded.split(',')[0].trim();
+  return req.socket?.remoteAddress || req.ip || '127.0.0.1';
+}
+
+function checkLockout(ip) {
+  const record = loginAttempts.get(ip);
+  if (!record) return { locked: false };
+  if (record.lockUntil && Date.now() < record.lockUntil) {
+    const minutesLeft = Math.ceil((record.lockUntil - Date.now()) / 60000);
+    return { locked: true, minutesLeft };
+  }
+  if (record.lockUntil && Date.now() >= record.lockUntil) {
+    loginAttempts.delete(ip);
+  }
+  return { locked: false };
+}
+
+function recordFailure(ip) {
+  const record = loginAttempts.get(ip) || { count: 0, lockUntil: null };
+  record.count += 1;
+  if (record.count >= MAX_FAILED_ATTEMPTS) {
+    record.lockUntil = Date.now() + LOCKOUT_DURATION_MS;
+  }
+  loginAttempts.set(ip, record);
+  return record;
+}
+
 app.post('/api/auth/login', async (req, res) => {
   try {
+    const clientIp = getClientIp(req);
+    const { locked, minutesLeft } = checkLockout(clientIp);
+
+    if (locked) {
+      return res.status(429).json({
+        success: false,
+        message: `নিরাপত্তার স্বার্থে অ্যাকাউন্ট সাময়িকভাবে স্থগিত করা হয়েছে। অনুগ্রহ করে ${minutesLeft} মিনিট পর পুনরায় চেষ্টা করুন।`
+      });
+    }
+
     const { password } = req.body || {};
     if (!password) {
       return res.status(400).json({ success: false, message: 'পাসওয়ার্ড দিন' });
     }
+
     const isValid = await verifyAdminPassword(password);
     if (!isValid) {
-      return res.status(401).json({ success: false, message: 'ভুল পাসওয়ার্ড! সঠিক পাসওয়ার্ড দিন।' });
+      const record = recordFailure(clientIp);
+      const remaining = MAX_FAILED_ATTEMPTS - record.count;
+      if (remaining <= 0) {
+        return res.status(429).json({
+          success: false,
+          message: 'পরপর ৫ বার ভুল পাসওয়ার্ড দেওয়ার কারণে ১৫ মিনিটের জন্য লগইন লক করা হয়েছে।'
+        });
+      }
+      return res.status(401).json({
+        success: false,
+        message: `ভুল পাসওয়ার্ড! সঠিক পাসওয়ার্ড দিন। (অবশিষ্ট সুযোগ: ${remaining} বার)`
+      });
     }
+
+    // Success — clear failed attempts
+    loginAttempts.delete(clientIp);
     const token = generateAuthToken();
     res.json({ success: true, message: 'লগইন সফল হয়েছে', token });
   } catch (err) {

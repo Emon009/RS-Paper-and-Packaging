@@ -21,6 +21,6 @@
   "sales": [],
   "payments": [],
   "settings": {
-    "admin_password": "Mp01711006211$"
+    "admin_password_hash": "6ae04211db8b900910aacbc4be5866f921e8d54433ca6163d4321cb797050edd"
   }
 }

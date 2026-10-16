@@ -113,7 +113,7 @@ CREATE TABLE IF NOT EXISTS app_settings (
 ALTER TABLE app_settings ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Allow public read/write app_settings" ON app_settings FOR ALL USING (true) WITH CHECK (true);
 
--- ডিফল্ট অ্যাডমিন পাসওয়ার্ড এন্ট্রি
+-- ডিফল্ট অ্যাডমিন পাসওয়ার্ড এন্ট্রি (Cryptographic Salted SHA-256 Hash)
 INSERT INTO app_settings (key, value) 
-VALUES ('admin_password', 'Mp01711006211$')
+VALUES ('admin_password_hash', '6ae04211db8b900910aacbc4be5866f921e8d54433ca6163d4321cb797050edd')
 ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;
