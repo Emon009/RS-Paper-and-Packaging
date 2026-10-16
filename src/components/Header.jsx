@@ -32,35 +32,37 @@ export default function Header({
   ];
 
   return (
-    <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm no-print">
+    <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs no-print">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
-        <div className="flex flex-col md:flex-row md:items-center justify-between py-2.5 sm:py-3 gap-2.5 sm:gap-3">
+        {/* Main Header Row */}
+        <div className="flex items-center justify-between py-2 sm:py-3 gap-2">
           
           {/* Brand Logo & Name */}
-          <div className="flex items-center gap-2.5 sm:gap-3">
-            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white shadow-md shadow-emerald-500/20 shrink-0">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white shadow-md shadow-emerald-500/20 shrink-0">
               <Building2 className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             <div className="min-w-0">
-              <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-                <h1 className="text-base sm:text-xl md:text-2xl font-bold tracking-tight text-slate-800 font-sans truncate">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <h1 className="text-sm sm:text-xl md:text-2xl font-bold tracking-tight text-slate-800 font-sans truncate">
                   {t('companyName')}
                 </h1>
-                <span className="px-2 py-0.5 text-[11px] sm:text-xs font-semibold bg-emerald-100 text-emerald-800 rounded-full shrink-0">
+                <span className="px-1.5 sm:px-2 py-0.5 text-[10px] sm:text-xs font-semibold bg-emerald-100 text-emerald-800 rounded-full shrink-0">
                   {t('ownerName')}
                 </span>
               </div>
-              <p className="text-[11px] sm:text-xs text-slate-500 truncate">
-                {t('address')} | {t('mobile')}: <span className="font-semibold text-slate-700">01711006211</span>
+              <p className="text-[10px] sm:text-xs text-slate-500 truncate hidden xs:block">
+                {t('address')} | <a href="tel:01711006211" className="font-semibold text-slate-700 hover:text-emerald-700">01711006211</a>
               </p>
             </div>
           </div>
 
-          {/* Action Buttons + Language Switcher (Responsive full-width on mobile) */}
-          <div className="flex items-center gap-2 w-full md:w-auto">
+          {/* Action Buttons: Desktop full buttons, Mobile compact utilities */}
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            {/* Desktop Only New Purchase & Sale Buttons */}
             <button
               onClick={onOpenPurchaseModal}
-              className="flex-1 md:flex-none inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-semibold rounded-lg shadow-sm transition-all active:scale-95"
+              className="hidden md:inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-semibold rounded-lg shadow-sm transition-all active:scale-95"
             >
               <PlusCircle className="w-4 h-4 shrink-0" />
               <span className="whitespace-nowrap">{t('newPurchaseEntry')}</span>
@@ -68,7 +70,7 @@ export default function Header({
 
             <button
               onClick={onOpenSaleModal}
-              className="flex-1 md:flex-none inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-semibold rounded-lg shadow-sm transition-all active:scale-95"
+              className="hidden md:inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-semibold rounded-lg shadow-sm transition-all active:scale-95"
             >
               <PlusCircle className="w-4 h-4 shrink-0" />
               <span className="whitespace-nowrap">{t('newSaleEntry')}</span>
@@ -78,7 +80,7 @@ export default function Header({
             <button
               onClick={toggleLanguage}
               title={t('language')}
-              className="inline-flex items-center justify-center gap-1 px-2.5 sm:px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold transition active:scale-95 shrink-0"
+              className="inline-flex items-center justify-center gap-1 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold transition active:scale-95 shrink-0"
             >
               <Globe className="w-3.5 h-3.5 text-slate-500" />
               <span className="whitespace-nowrap">{lang === 'en' ? '🇧🇩 বাংলা' : '🇬🇧 EN'}</span>
@@ -89,7 +91,7 @@ export default function Header({
               <button
                 onClick={onLogout}
                 title={t('logout')}
-                className="inline-flex items-center justify-center gap-1 px-2.5 sm:px-3 py-2 rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-semibold transition active:scale-95 shrink-0"
+                className="inline-flex items-center justify-center gap-1 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-semibold transition active:scale-95 shrink-0"
               >
                 <LogOut className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline whitespace-nowrap">{t('logout')}</span>

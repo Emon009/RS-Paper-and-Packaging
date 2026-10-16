@@ -17,7 +17,7 @@ export default function StatsCards({ stats, onNavigate }) {
       {/* 1. Tissue Paper Stock Card */}
       <div 
         onClick={() => onNavigate('stock')}
-        className="bg-white rounded-xl p-3 sm:p-5 border border-sky-100 shadow-sm hover:shadow-md transition cursor-pointer relative overflow-hidden group flex flex-col justify-between"
+        className="bg-white rounded-xl p-3 sm:p-5 border border-sky-100 shadow-xs hover:shadow-md transition cursor-pointer relative overflow-hidden group flex flex-col justify-between tap-press"
       >
         <div className="absolute top-0 right-0 w-16 sm:w-24 h-16 sm:h-24 bg-sky-50 rounded-bl-full -mr-3 -mt-3 sm:-mr-4 sm:-mt-4 transition group-hover:scale-110" />
         <div className="relative">
@@ -45,7 +45,7 @@ export default function StatsCards({ stats, onNavigate }) {
       {/* 2. Cutting / News Paper Stock Card */}
       <div 
         onClick={() => onNavigate('stock')}
-        className="bg-white rounded-xl p-3 sm:p-5 border border-amber-100 shadow-sm hover:shadow-md transition cursor-pointer relative overflow-hidden group flex flex-col justify-between"
+        className="bg-white rounded-xl p-3 sm:p-5 border border-amber-100 shadow-xs hover:shadow-md transition cursor-pointer relative overflow-hidden group flex flex-col justify-between tap-press"
       >
         <div className="absolute top-0 right-0 w-16 sm:w-24 h-16 sm:h-24 bg-amber-50 rounded-bl-full -mr-3 -mt-3 sm:-mr-4 sm:-mt-4 transition group-hover:scale-110" />
         <div className="relative">
@@ -73,7 +73,7 @@ export default function StatsCards({ stats, onNavigate }) {
       {/* 3. Customer Receivable */}
       <div 
         onClick={() => onNavigate('ledger')}
-        className="bg-white rounded-xl p-3 sm:p-5 border border-emerald-100 shadow-sm hover:shadow-md transition cursor-pointer relative overflow-hidden group flex flex-col justify-between"
+        className="bg-white rounded-xl p-3 sm:p-5 border border-emerald-100 shadow-xs hover:shadow-md transition cursor-pointer relative overflow-hidden group flex flex-col justify-between tap-press"
       >
         <div className="absolute top-0 right-0 w-16 sm:w-24 h-16 sm:h-24 bg-emerald-50 rounded-bl-full -mr-3 -mt-3 sm:-mr-4 sm:-mt-4 transition group-hover:scale-110" />
         <div className="relative">
@@ -100,7 +100,7 @@ export default function StatsCards({ stats, onNavigate }) {
       {/* 4. Supplier Payable */}
       <div 
         onClick={() => onNavigate('ledger')}
-        className="bg-white rounded-xl p-3 sm:p-5 border border-rose-100 shadow-sm hover:shadow-md transition cursor-pointer relative overflow-hidden group flex flex-col justify-between"
+        className="bg-white rounded-xl p-3 sm:p-5 border border-rose-100 shadow-xs hover:shadow-md transition cursor-pointer relative overflow-hidden group flex flex-col justify-between tap-press"
       >
         <div className="absolute top-0 right-0 w-16 sm:w-24 h-16 sm:h-24 bg-rose-50 rounded-bl-full -mr-3 -mt-3 sm:-mr-4 sm:-mt-4 transition group-hover:scale-110" />
         <div className="relative">

@@ -129,10 +129,14 @@ export default function TransactionHistory({
                     </div>
                     <div className="font-bold text-slate-900 text-sm mt-0.5 truncate">{partyName}</div>
                     {partyPhone && (
-                      <span className="text-[11px] text-slate-500 flex items-center gap-1">
+                      <a
+                        href={`tel:${partyPhone}`}
+                        className="text-[11px] text-slate-500 hover:text-emerald-700 flex items-center gap-1 mt-0.5"
+                        title={lang === 'bn' ? 'সরাসরি কল করুন' : 'Call'}
+                      >
                         <Phone className="w-3 h-3 text-slate-400" />
-                        {partyPhone}
-                      </span>
+                        <span>{partyPhone}</span>
+                      </a>
                     )}
                   </div>
 

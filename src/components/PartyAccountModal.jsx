@@ -177,10 +177,10 @@ export default function PartyAccountModal({
               </div>
               <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-white/80 mt-0.5">
                 {profile.phone && (
-                  <span className="flex items-center gap-1">
-                    <Phone className="w-3 h-3" />
+                  <a href={`tel:${profile.phone}`} className="flex items-center gap-1 hover:underline text-white font-medium" title={lang === 'bn' ? 'সরাসরি কল করুন' : 'Call'}>
+                    <Phone className="w-3 h-3 text-white/80" />
                     {profile.phone}
-                  </span>
+                  </a>
                 )}
                 {profile.address && (
                   <span className="flex items-center gap-1 truncate max-w-[200px]">

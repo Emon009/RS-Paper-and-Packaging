@@ -184,7 +184,8 @@ export default function PurchaseModal({ isOpen, onClose, onSuccess, initialParty
               </label>
               <div className="relative">
                 <input
-                  type="text"
+                  type="tel"
+                  inputMode="tel"
                   placeholder={t('mobilePlaceholder')}
                   value={formData.supplierPhone}
                   onChange={(e) => setFormData({ ...formData, supplierPhone: e.target.value })}
@@ -230,6 +231,7 @@ export default function PurchaseModal({ isOpen, onClose, onSuccess, initialParty
                   <label className="block text-[11px] text-slate-600 mb-0.5">{t('quantity')} ({t('kg')})</label>
                   <input
                     type="number"
+                    inputMode="decimal"
                     min="0"
                     step="any"
                     placeholder="0"
@@ -243,6 +245,7 @@ export default function PurchaseModal({ isOpen, onClose, onSuccess, initialParty
                   <label className="block text-[11px] text-slate-600 mb-0.5">{t('rate')} (৳/{t('kg')})</label>
                   <input
                     type="number"
+                    inputMode="decimal"
                     min="0"
                     step="any"
                     placeholder="0"
@@ -271,6 +274,7 @@ export default function PurchaseModal({ isOpen, onClose, onSuccess, initialParty
                   <label className="block text-[11px] text-slate-600 mb-0.5">{t('quantity')} ({t('kg')})</label>
                   <input
                     type="number"
+                    inputMode="decimal"
                     min="0"
                     step="any"
                     placeholder="0"
@@ -284,6 +288,7 @@ export default function PurchaseModal({ isOpen, onClose, onSuccess, initialParty
                   <label className="block text-[11px] text-slate-600 mb-0.5">{t('rate')} (৳/{t('kg')})</label>
                   <input
                     type="number"
+                    inputMode="decimal"
                     min="0"
                     step="any"
                     placeholder="0"
@@ -322,6 +327,7 @@ export default function PurchaseModal({ isOpen, onClose, onSuccess, initialParty
                 <div className="relative">
                   <input
                     type="number"
+                    inputMode="decimal"
                     min="0"
                     step="any"
                     placeholder="0"
@@ -377,19 +383,19 @@ export default function PurchaseModal({ isOpen, onClose, onSuccess, initialParty
             </div>
           </div>
 
-          {/* Action Buttons (Responsive flex-col-reverse on mobile) */}
-          <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2 sm:gap-3 pt-2">
+          {/* Action Buttons (Sticky at bottom on mobile) */}
+          <div className="sticky bottom-0 bg-white/95 backdrop-blur-md pt-3 pb-1 border-t border-slate-200/80 -mx-4 -mb-4 sm:-mx-6 sm:-mb-6 px-4 sm:px-6 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2 sm:gap-3">
             <button
               type="button"
               onClick={onClose}
-              className="w-full sm:w-auto px-4 py-2.5 text-sm font-medium text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition text-center"
+              className="w-full sm:w-auto px-4 py-2.5 text-sm font-medium text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition text-center tap-press"
             >
               {t('cancel')}
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="w-full sm:w-auto px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg shadow transition active:scale-95 disabled:opacity-50 text-center"
+              className="w-full sm:w-auto px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg shadow transition active:scale-95 disabled:opacity-50 text-center tap-press"
             >
               {loading ? t('saving') : t('submit')}
             </button>

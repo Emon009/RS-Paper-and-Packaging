@@ -11,6 +11,7 @@ import TransactionHistory from './components/TransactionHistory';
 import PartyAccountsView from './components/PartyAccountsView';
 import PartyAccountModal from './components/PartyAccountModal';
 import LoginScreen from './components/LoginScreen';
+import BottomNav from './components/BottomNav';
 import { PlusCircle, ShoppingBag, ShoppingCart, RefreshCw, Sparkles } from 'lucide-react';
 import { useLanguage } from './i18n/LanguageContext';
 
@@ -174,7 +175,7 @@ export default function App() {
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-3.5 sm:py-6">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 pt-3 sm:pt-6 pb-24 md:pb-8">
         
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20">
@@ -323,14 +324,22 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <footer className="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-500 no-print space-y-1">
+      <footer className="bg-white border-t border-slate-200 py-4 pb-24 md:pb-4 text-center text-xs text-slate-500 no-print space-y-1">
         <p>
           © {new Date().getFullYear()} <strong>{lang === 'bn' ? (company.name || t('companyName')) : t('companyName')}</strong> • <strong>{lang === 'bn' ? (company.owner || t('ownerName')) : t('ownerName')}</strong>
         </p>
         <p className="text-slate-400">
-          {lang === 'bn' ? (company.address || t('address')) : t('address')} | {t('mobile')}: <span className="text-slate-600 font-medium">{company.phone || '01711006211'}</span>
+          {lang === 'bn' ? (company.address || t('address')) : t('address')} | {t('mobile')}: <a href={`tel:${company.phone || '01711006211'}`} className="text-slate-600 font-medium hover:text-emerald-700">{company.phone || '01711006211'}</a>
         </p>
       </footer>
+
+      {/* Mobile Sticky Bottom Navigation Bar */}
+      <BottomNav
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        onOpenPurchaseModal={() => setPurchaseModalState({ isOpen: true, initialParty: null })}
+        onOpenSaleModal={() => setSaleModalState({ isOpen: true, initialParty: null })}
+      />
 
       {/* Modals */}
       <PurchaseModal

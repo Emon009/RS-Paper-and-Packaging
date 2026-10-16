@@ -140,10 +140,14 @@ export default function LedgerView({ onSettlePayment, onOpenPartyFolder }) {
                         <div className="min-w-0">
                           <h4 className="font-bold text-slate-900 text-sm truncate">{cust.name}</h4>
                           {cust.phone && (
-                            <span className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
+                            <a
+                              href={`tel:${cust.phone}`}
+                              className="text-[11px] text-slate-500 hover:text-emerald-700 flex items-center gap-1 mt-0.5"
+                              title={lang === 'bn' ? 'সরাসরি কল করুন' : 'Call'}
+                            >
                               <Phone className="w-3 h-3 text-slate-400" />
-                              {cust.phone}
-                            </span>
+                              <span className="truncate">{cust.phone}</span>
+                            </a>
                           )}
                         </div>
                       </div>
@@ -318,10 +322,14 @@ export default function LedgerView({ onSettlePayment, onOpenPartyFolder }) {
                         <div className="min-w-0">
                           <h4 className="font-bold text-slate-900 text-sm truncate">{supp.name}</h4>
                           {supp.phone && (
-                            <span className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
+                            <a
+                              href={`tel:${supp.phone}`}
+                              className="text-[11px] text-slate-500 hover:text-indigo-700 flex items-center gap-1 mt-0.5"
+                              title={lang === 'bn' ? 'সরাসরি কল করুন' : 'Call'}
+                            >
                               <Phone className="w-3 h-3 text-slate-400" />
-                              {supp.phone}
-                            </span>
+                              <span className="truncate">{supp.phone}</span>
+                            </a>
                           )}
                         </div>
                       </div>
