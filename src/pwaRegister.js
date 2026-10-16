@@ -2,7 +2,7 @@
 
 export function registerServiceWorker() {
   if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
+    const register = () => {
       navigator.serviceWorker
         .register('/sw.js')
         .then((registration) => {
@@ -16,7 +16,6 @@ export function registerServiceWorker() {
                 if (installingWorker.state === 'installed') {
                   if (navigator.serviceWorker.controller) {
                     console.log('[PWA] New version available! Reloading...');
-                    // Optionally notify user or auto-refresh
                   } else {
                     console.log('[PWA] Content is cached for offline use.');
                   }
@@ -28,6 +27,12 @@ export function registerServiceWorker() {
         .catch((error) => {
           console.warn('[PWA] Service Worker registration failed:', error);
         });
-    });
+    };
+
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+      register();
+    } else {
+      window.addEventListener('load', register);
+    }
   }
 }

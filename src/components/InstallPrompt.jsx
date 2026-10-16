@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Download, Share, X, Info } from 'lucide-react';
+import { Download, Share, X } from 'lucide-react';
 import { useLanguage } from '../i18n/LanguageContext';
 
 const LS_INSTALLED_KEY = 'rs_pwa_installed';
@@ -16,26 +16,42 @@ function isRunningStandalone() {
 export default function InstallPrompt() {
   const { lang } = useLanguage();
   const deferredPromptRef = useRef(null);
-  const [showBanner, setShowBanner]   = useState(false);
-  const [isIOS,      setIsIOS]        = useState(false);
-  const [showGuide,  setShowGuide]    = useState(false); // manual install guide popup
-  const [installing, setInstalling]   = useState(false);
+  const [showBanner, setShowBanner] = useState(false);
+  const [isIOS, setIsIOS] = useState(false);
+  const [installing, setInstalling] = useState(false);
 
   useEffect(() => {
+    // 1. Check if already installed or standalone
     if (isRunningStandalone()) return;
     if (localStorage.getItem(LS_INSTALLED_KEY) === 'true') return;
     if (sessionStorage.getItem(SS_DISMISSED_KEY) === 'true') return;
 
+    // 2. Detect iOS
     const ua = window.navigator.userAgent.toLowerCase();
     const iosDevice = /iphone|ipad|ipod/.test(ua);
     setIsIOS(iosDevice);
 
-    // Always show banner after short delay
-    const timer = setTimeout(() => setShowBanner(true), 1500);
+    // 3. Pick up prompt if already captured in index.html head
+    if (window.deferredInstallPrompt) {
+      deferredPromptRef.current = window.deferredInstallPrompt;
+    }
 
-    // Capture native install prompt when browser fires it
+    // 4. Show banner after brief delay
+    const timer = setTimeout(() => setShowBanner(true), 1200);
+
+    // 5. Listen for prompt events
+    const onPromptReady = (e) => {
+      const promptEvent = e.detail || window.deferredInstallPrompt;
+      if (promptEvent) {
+        deferredPromptRef.current = promptEvent;
+      }
+      clearTimeout(timer);
+      setShowBanner(true);
+    };
+
     const onBeforeInstall = (e) => {
       e.preventDefault();
+      window.deferredInstallPrompt = e;
       deferredPromptRef.current = e;
       clearTimeout(timer);
       setShowBanner(true);
@@ -43,179 +59,132 @@ export default function InstallPrompt() {
 
     const onInstalled = () => {
       localStorage.setItem(LS_INSTALLED_KEY, 'true');
+      window.deferredInstallPrompt = null;
       deferredPromptRef.current = null;
       setShowBanner(false);
-      setShowGuide(false);
+      setInstalling(false);
     };
 
     window.addEventListener('beforeinstallprompt', onBeforeInstall);
+    window.addEventListener('deferred-prompt-ready', onPromptReady);
     window.addEventListener('appinstalled', onInstalled);
 
     return () => {
       clearTimeout(timer);
       window.removeEventListener('beforeinstallprompt', onBeforeInstall);
+      window.removeEventListener('deferred-prompt-ready', onPromptReady);
       window.removeEventListener('appinstalled', onInstalled);
     };
   }, []);
 
   const handleInstall = async () => {
-    const prompt = deferredPromptRef.current;
+    const prompt = deferredPromptRef.current || window.deferredInstallPrompt;
 
     if (prompt) {
-      // Native browser install dialog
       setInstalling(true);
       try {
-        prompt.prompt();
+        await prompt.prompt();
         const { outcome } = await prompt.userChoice;
         if (outcome === 'accepted') {
           localStorage.setItem(LS_INSTALLED_KEY, 'true');
           setShowBanner(false);
-          setShowGuide(false);
         }
+      } catch (err) {
+        console.warn('Install prompt error:', err);
       } finally {
+        window.deferredInstallPrompt = null;
         deferredPromptRef.current = null;
         setInstalling(false);
       }
     } else {
-      // No native prompt — show manual install guide
-      setShowGuide(true);
+      // If prompt is initializing, try after a brief delay
+      setInstalling(true);
+      setTimeout(async () => {
+        const latePrompt = deferredPromptRef.current || window.deferredInstallPrompt;
+        if (latePrompt) {
+          try {
+            await latePrompt.prompt();
+            const { outcome } = await latePrompt.userChoice;
+            if (outcome === 'accepted') {
+              localStorage.setItem(LS_INSTALLED_KEY, 'true');
+              setShowBanner(false);
+            }
+          } catch (err) {
+            console.warn('Install prompt error:', err);
+          } finally {
+            window.deferredInstallPrompt = null;
+            deferredPromptRef.current = null;
+            setInstalling(false);
+          }
+        } else {
+          setInstalling(false);
+        }
+      }, 400);
     }
   };
 
   const handleDismiss = () => {
     sessionStorage.setItem(SS_DISMISSED_KEY, 'true');
     setShowBanner(false);
-    setShowGuide(false);
   };
 
   if (!showBanner) return null;
 
   return (
-    <>
-      {/* ── Main Banner ─────────────────────────────────────────── */}
-      <div className="fixed bottom-20 md:bottom-5 left-3 right-3 md:left-auto md:right-5 z-40 max-w-sm mx-auto">
-        {/* White card with green top-border — always visible against any bg */}
-        <div className="bg-white px-3.5 py-3 rounded-2xl shadow-2xl border-t-4 border-emerald-500 ring-1 ring-slate-200 flex items-center gap-3">
+    <div className="fixed bottom-20 md:bottom-5 left-3 right-3 md:left-auto md:right-5 z-40 max-w-sm mx-auto animate-in slide-in-from-bottom-5 duration-300">
+      {/* High-contrast white card with green top border */}
+      <div className="bg-white px-3.5 py-3 rounded-2xl shadow-2xl border-t-4 border-emerald-500 ring-1 ring-slate-200/80 flex items-center gap-3">
 
-          {/* App Icon */}
-          <div className="w-10 h-10 rounded-xl shrink-0 overflow-hidden shadow">
-            <img src="/icon-192.png" alt="RS Paper" className="w-10 h-10" />
-          </div>
+        {/* App Icon */}
+        <div className="w-10 h-10 rounded-xl shrink-0 overflow-hidden shadow">
+          <img src="/icon-192.png" alt="RS Paper" className="w-10 h-10 object-cover" />
+        </div>
 
-          {/* Text */}
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-bold text-slate-900 leading-tight">
-              {lang === 'bn' ? 'RS Paper অ্যাপ ইনস্টল করুন' : 'Install RS Paper App'}
-            </p>
-            <p className="text-[11px] text-slate-500 leading-snug mt-0.5">
-              {isIOS ? (
+        {/* Text */}
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-bold text-slate-900 leading-tight">
+            {lang === 'bn' ? 'RS Paper অ্যাপ ইনস্টল করুন' : 'Install RS Paper App'}
+          </p>
+          <p className="text-[11px] text-slate-500 leading-snug mt-0.5">
+            {isIOS ? (
+              lang === 'bn' ? (
                 <><Share className="w-3 h-3 inline mb-0.5 text-blue-500" /> Share → <strong className="text-slate-700">Add to Home Screen</strong></>
               ) : (
-                lang === 'bn'
-                  ? 'হোম স্ক্রিনে রাখুন — অফলাইনেও চলবে'
-                  : 'Add to home screen — works offline too'
-              )}
-            </p>
-          </div>
+                <><Share className="w-3 h-3 inline mb-0.5 text-blue-500" /> Share → <strong className="text-slate-700">Add to Home Screen</strong></>
+              )
+            ) : (
+              lang === 'bn'
+                ? 'হোম স্ক্রিনে রাখুন — অফলাইনেও চলবে'
+                : 'Add to home screen — works offline too'
+            )}
+          </p>
+        </div>
 
-          {/* Install Button — always visible */}
-          {!isIOS && (
-            <button
-              onClick={handleInstall}
-              disabled={installing}
-              className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 active:scale-95 disabled:opacity-60 text-white text-[11px] font-bold rounded-lg shadow transition"
-            >
-              <Download className="w-3.5 h-3.5" />
-              {installing
-                ? '...'
-                : (lang === 'bn' ? 'ইনস্টল' : 'Install')}
-            </button>
-          )}
-
-          {/* Dismiss */}
+        {/* Install Button (for Android, Chrome, Edge, PC) */}
+        {!isIOS && (
           <button
-            onClick={handleDismiss}
-            className="shrink-0 text-slate-400 hover:text-slate-700 p-1 rounded-lg transition"
-            title={lang === 'bn' ? 'এখন না' : 'Not now'}
+            onClick={handleInstall}
+            disabled={installing}
+            className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 active:scale-95 disabled:opacity-60 text-white text-[11px] font-bold rounded-lg shadow transition tap-press cursor-pointer"
           >
-            <X className="w-4 h-4" />
+            <Download className="w-3.5 h-3.5" />
+            <span>
+              {installing
+                ? (lang === 'bn' ? 'অপেক্ষা...' : 'Waiting...')
+                : (lang === 'bn' ? 'ইনস্টল' : 'Install')}
+            </span>
           </button>
-        </div>
-      </div>
+        )}
 
-      {/* ── Manual Install Guide Modal (when native prompt not available) ── */}
-      {showGuide && (
-        <div
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
-          onClick={() => setShowGuide(false)}
+        {/* Dismiss Button */}
+        <button
+          onClick={handleDismiss}
+          className="shrink-0 text-slate-400 hover:text-slate-700 p-1 rounded-lg transition"
+          title={lang === 'bn' ? 'এখন না' : 'Not now'}
         >
-          <div
-            className="bg-slate-900 text-white rounded-2xl shadow-2xl border border-emerald-500/30 p-5 w-full max-w-sm"
-            onClick={e => e.stopPropagation()}
-          >
-            {/* Header */}
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl overflow-hidden shrink-0">
-                <img src="/icon-192.png" alt="RS Paper" className="w-10 h-10" />
-              </div>
-              <div>
-                <h3 className="font-bold text-sm text-white">
-                  {lang === 'bn' ? 'অ্যাপ ইনস্টল করুন' : 'How to Install'}
-                </h3>
-                <p className="text-[11px] text-slate-400">RS Paper and Packaging</p>
-              </div>
-              <button onClick={() => setShowGuide(false)} className="ml-auto text-slate-500 hover:text-white">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Steps */}
-            <div className="space-y-3">
-              {[
-                {
-                  step: '1',
-                  bn: 'ব্রাউজারের উপরে ডানদিকের ⋮ মেনুতে ক্লিক করুন',
-                  en: 'Tap the ⋮ menu (top-right of your browser)',
-                },
-                {
-                  step: '2',
-                  bn: '"অ্যাপ ইনস্টল করুন" বা "Add to Home Screen" অপশনটি সিলেক্ট করুন',
-                  en: 'Select "Install app" or "Add to Home Screen"',
-                },
-                {
-                  step: '3',
-                  bn: '"ইনস্টল" বাটনে চাপুন — হোম স্ক্রিনে আইকন যুক্ত হবে',
-                  en: 'Tap "Install" — the icon will appear on your home screen',
-                },
-              ].map(({ step, bn, en }) => (
-                <div key={step} className="flex gap-3 items-start">
-                  <span className="w-6 h-6 rounded-full bg-emerald-500 text-slate-950 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">
-                    {step}
-                  </span>
-                  <p className="text-xs text-slate-300 leading-relaxed">
-                    {lang === 'bn' ? bn : en}
-                  </p>
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-4 pt-4 border-t border-slate-700 flex gap-2">
-              <button
-                onClick={() => { localStorage.setItem(LS_INSTALLED_KEY, 'true'); setShowBanner(false); setShowGuide(false); }}
-                className="flex-1 py-2 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 text-xs font-semibold rounded-lg transition"
-              >
-                {lang === 'bn' ? 'ইনস্টল হয়ে গেছে ✓' : 'Already Installed ✓'}
-              </button>
-              <button
-                onClick={() => setShowGuide(false)}
-                className="flex-1 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs font-semibold rounded-lg transition"
-              >
-                {lang === 'bn' ? 'পরে করব' : 'Later'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </>
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
   );
 }

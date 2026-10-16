@@ -1,5 +1,5 @@
 // ── RS Paper & Packaging — Service Worker ──
-const CACHE_NAME = 'rs-paper-pwa-v1';
+const CACHE_NAME = 'rs-paper-pwa-v2';
 
 const PRECACHE_ASSETS = [
   '/',
@@ -8,7 +8,7 @@ const PRECACHE_ASSETS = [
   '/icon-192.png',
   '/icon-512.png',
   '/icon-maskable.png',
-  '/icon.svg',
+  '/favicon-32.png',
   '/apple-touch-icon.png'
 ];
 
