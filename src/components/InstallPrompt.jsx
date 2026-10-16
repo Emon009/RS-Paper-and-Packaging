@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Download, Share, X } from 'lucide-react';
+import { Download, Share, X, Info } from 'lucide-react';
 import { useLanguage } from '../i18n/LanguageContext';
 
-const LS_INSTALLED_KEY  = 'rs_pwa_installed';
-const SS_DISMISSED_KEY  = 'rs_pwa_banner_dismissed';
+const LS_INSTALLED_KEY = 'rs_pwa_installed';
+const SS_DISMISSED_KEY = 'rs_pwa_banner_dismissed';
 
 function isRunningStandalone() {
   return (
@@ -16,127 +16,205 @@ function isRunningStandalone() {
 export default function InstallPrompt() {
   const { lang } = useLanguage();
   const deferredPromptRef = useRef(null);
-  const [promptReady, setPromptReady]   = useState(false); // native prompt captured
-  const [showBanner,  setShowBanner]    = useState(false);
-  const [isIOS,       setIsIOS]         = useState(false);
+  const [showBanner, setShowBanner]   = useState(false);
+  const [isIOS,      setIsIOS]        = useState(false);
+  const [showGuide,  setShowGuide]    = useState(false); // manual install guide popup
+  const [installing, setInstalling]   = useState(false);
 
   useEffect(() => {
-    // ── Already installed or running as PWA → never show ─────────────────
     if (isRunningStandalone()) return;
     if (localStorage.getItem(LS_INSTALLED_KEY) === 'true') return;
-
-    // ── Dismissed this session → hide until next visit ───────────────────
     if (sessionStorage.getItem(SS_DISMISSED_KEY) === 'true') return;
 
-    // ── Detect iOS Safari ─────────────────────────────────────────────────
-    const ua        = window.navigator.userAgent.toLowerCase();
+    const ua = window.navigator.userAgent.toLowerCase();
     const iosDevice = /iphone|ipad|ipod/.test(ua);
     setIsIOS(iosDevice);
 
-    // Show banner after a short delay regardless of beforeinstallprompt
+    // Always show banner after short delay
     const timer = setTimeout(() => setShowBanner(true), 1500);
 
-    // ── Capture native install prompt when available ───────────────────────
+    // Capture native install prompt when browser fires it
     const onBeforeInstall = (e) => {
       e.preventDefault();
       deferredPromptRef.current = e;
-      setPromptReady(true);
-      // Ensure banner is visible (in case timer not fired yet)
       clearTimeout(timer);
       setShowBanner(true);
     };
 
-    // ── Detect successful install via browser event ────────────────────────
     const onInstalled = () => {
       localStorage.setItem(LS_INSTALLED_KEY, 'true');
-      localStorage.removeItem('rs_pwa_prompt_available');
       deferredPromptRef.current = null;
-      setPromptReady(false);
       setShowBanner(false);
+      setShowGuide(false);
     };
 
     window.addEventListener('beforeinstallprompt', onBeforeInstall);
-    window.addEventListener('appinstalled',        onInstalled);
+    window.addEventListener('appinstalled', onInstalled);
 
     return () => {
       clearTimeout(timer);
       window.removeEventListener('beforeinstallprompt', onBeforeInstall);
-      window.removeEventListener('appinstalled',        onInstalled);
+      window.removeEventListener('appinstalled', onInstalled);
     };
   }, []);
 
-  // ── User clicks Install Now ────────────────────────────────────────────
   const handleInstall = async () => {
     const prompt = deferredPromptRef.current;
-    if (!prompt) return;
-    prompt.prompt();
-    const { outcome } = await prompt.userChoice;
-    if (outcome === 'accepted') {
-      localStorage.setItem(LS_INSTALLED_KEY, 'true');
-      localStorage.removeItem('rs_pwa_prompt_available');
-      setShowBanner(false);
+
+    if (prompt) {
+      // Native browser install dialog
+      setInstalling(true);
+      try {
+        prompt.prompt();
+        const { outcome } = await prompt.userChoice;
+        if (outcome === 'accepted') {
+          localStorage.setItem(LS_INSTALLED_KEY, 'true');
+          setShowBanner(false);
+          setShowGuide(false);
+        }
+      } finally {
+        deferredPromptRef.current = null;
+        setInstalling(false);
+      }
+    } else {
+      // No native prompt — show manual install guide
+      setShowGuide(true);
     }
-    deferredPromptRef.current = null;
-    setPromptReady(false);
   };
 
-  // ── Dismiss: hide for this session, show again next visit ─────────────
   const handleDismiss = () => {
     sessionStorage.setItem(SS_DISMISSED_KEY, 'true');
     setShowBanner(false);
+    setShowGuide(false);
   };
 
   if (!showBanner) return null;
 
   return (
-    <div className="fixed bottom-20 md:bottom-5 left-3 right-3 md:left-auto md:right-5 z-40 max-w-sm mx-auto">
-      <div className="bg-slate-900/95 backdrop-blur-md text-white px-4 py-3 rounded-2xl shadow-2xl border border-emerald-500/40 flex items-center gap-3">
+    <>
+      {/* ── Main Banner ─────────────────────────────────────────── */}
+      <div className="fixed bottom-20 md:bottom-5 left-3 right-3 md:left-auto md:right-5 z-40 max-w-sm mx-auto">
+        <div className="bg-slate-900/97 backdrop-blur-md text-white px-3.5 py-3 rounded-2xl shadow-2xl border border-emerald-500/40 flex items-center gap-3">
 
-        {/* App Icon */}
-        <div className="w-10 h-10 rounded-xl shrink-0 overflow-hidden shadow">
-          <img src="/icon-192.png" alt="RS Paper" className="w-10 h-10" />
-        </div>
+          {/* App Icon */}
+          <div className="w-10 h-10 rounded-xl shrink-0 overflow-hidden shadow">
+            <img src="/icon-192.png" alt="RS Paper" className="w-10 h-10" />
+          </div>
 
-        {/* Text */}
-        <div className="flex-1 min-w-0">
-          <p className="text-xs font-bold text-white leading-tight">
-            {lang === 'bn' ? 'RS Paper অ্যাপ ইনস্টল করুন' : 'Install RS Paper App'}
-          </p>
-          <p className="text-[11px] text-slate-400 leading-snug mt-0.5">
-            {isIOS ? (
-              lang === 'bn' ? (
+          {/* Text */}
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-bold text-white leading-tight">
+              {lang === 'bn' ? 'RS Paper অ্যাপ ইনস্টল করুন' : 'Install RS Paper App'}
+            </p>
+            <p className="text-[11px] text-slate-400 leading-snug mt-0.5">
+              {isIOS ? (
                 <><Share className="w-3 h-3 inline mb-0.5 text-blue-400" /> Share → <strong className="text-slate-200">Add to Home Screen</strong></>
               ) : (
-                <><Share className="w-3 h-3 inline mb-0.5 text-blue-400" /> Share → <strong className="text-slate-200">Add to Home Screen</strong></>
-              )
-            ) : (
-              lang === 'bn'
-                ? 'হোম স্ক্রিনে রাখুন — অফলাইনেও চলবে'
-                : 'Add to home screen — works offline too'
-            )}
-          </p>
-        </div>
+                lang === 'bn'
+                  ? 'হোম স্ক্রিনে রাখুন — অফলাইনেও চলবে'
+                  : 'Add to home screen — works offline too'
+              )}
+            </p>
+          </div>
 
-        {/* Install button (only when native prompt is ready) */}
-        {!isIOS && promptReady && (
+          {/* Install Button — always visible */}
+          {!isIOS && (
+            <button
+              onClick={handleInstall}
+              disabled={installing}
+              className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 active:scale-95 disabled:opacity-60 text-slate-950 text-[11px] font-bold rounded-lg shadow transition"
+            >
+              <Download className="w-3.5 h-3.5" />
+              {installing
+                ? (lang === 'bn' ? '...' : '...')
+                : (lang === 'bn' ? 'ইনস্টল' : 'Install')}
+            </button>
+          )}
+
+          {/* Dismiss */}
           <button
-            onClick={handleInstall}
-            className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-slate-950 text-[11px] font-bold rounded-lg shadow transition"
+            onClick={handleDismiss}
+            className="shrink-0 text-slate-500 hover:text-white p-1 rounded-lg transition"
+            title={lang === 'bn' ? 'এখন না' : 'Not now'}
           >
-            <Download className="w-3 h-3" />
-            {lang === 'bn' ? 'ইনস্টল' : 'Install'}
+            <X className="w-4 h-4" />
           </button>
-        )}
-
-        {/* Dismiss */}
-        <button
-          onClick={handleDismiss}
-          className="shrink-0 text-slate-500 hover:text-white p-1 rounded-lg transition"
-          title={lang === 'bn' ? 'এখন না' : 'Not now'}
-        >
-          <X className="w-4 h-4" />
-        </button>
+        </div>
       </div>
-    </div>
+
+      {/* ── Manual Install Guide Modal (when native prompt not available) ── */}
+      {showGuide && (
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+          onClick={() => setShowGuide(false)}
+        >
+          <div
+            className="bg-slate-900 text-white rounded-2xl shadow-2xl border border-emerald-500/30 p-5 w-full max-w-sm"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl overflow-hidden shrink-0">
+                <img src="/icon-192.png" alt="RS Paper" className="w-10 h-10" />
+              </div>
+              <div>
+                <h3 className="font-bold text-sm text-white">
+                  {lang === 'bn' ? 'অ্যাপ ইনস্টল করুন' : 'How to Install'}
+                </h3>
+                <p className="text-[11px] text-slate-400">RS Paper and Packaging</p>
+              </div>
+              <button onClick={() => setShowGuide(false)} className="ml-auto text-slate-500 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Steps */}
+            <div className="space-y-3">
+              {[
+                {
+                  step: '1',
+                  bn: 'ব্রাউজারের উপরে ডানদিকের ⋮ মেনুতে ক্লিক করুন',
+                  en: 'Tap the ⋮ menu (top-right of your browser)',
+                },
+                {
+                  step: '2',
+                  bn: '"অ্যাপ ইনস্টল করুন" বা "Add to Home Screen" অপশনটি সিলেক্ট করুন',
+                  en: 'Select "Install app" or "Add to Home Screen"',
+                },
+                {
+                  step: '3',
+                  bn: '"ইনস্টল" বাটনে চাপুন — হোম স্ক্রিনে আইকন যুক্ত হবে',
+                  en: 'Tap "Install" — the icon will appear on your home screen',
+                },
+              ].map(({ step, bn, en }) => (
+                <div key={step} className="flex gap-3 items-start">
+                  <span className="w-6 h-6 rounded-full bg-emerald-500 text-slate-950 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">
+                    {step}
+                  </span>
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    {lang === 'bn' ? bn : en}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-4 pt-4 border-t border-slate-700 flex gap-2">
+              <button
+                onClick={() => { localStorage.setItem(LS_INSTALLED_KEY, 'true'); setShowBanner(false); setShowGuide(false); }}
+                className="flex-1 py-2 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 text-xs font-semibold rounded-lg transition"
+              >
+                {lang === 'bn' ? 'ইনস্টল হয়ে গেছে ✓' : 'Already Installed ✓'}
+              </button>
+              <button
+                onClick={() => setShowGuide(false)}
+                className="flex-1 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs font-semibold rounded-lg transition"
+              >
+                {lang === 'bn' ? 'পরে করব' : 'Later'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
