@@ -94,7 +94,8 @@ export default function InstallPrompt() {
     <>
       {/* ── Main Banner ─────────────────────────────────────────── */}
       <div className="fixed bottom-20 md:bottom-5 left-3 right-3 md:left-auto md:right-5 z-40 max-w-sm mx-auto">
-        <div className="bg-slate-900/97 backdrop-blur-md text-white px-3.5 py-3 rounded-2xl shadow-2xl border border-emerald-500/40 flex items-center gap-3">
+        {/* White card with green top-border — always visible against any bg */}
+        <div className="bg-white px-3.5 py-3 rounded-2xl shadow-2xl border-t-4 border-emerald-500 ring-1 ring-slate-200 flex items-center gap-3">
 
           {/* App Icon */}
           <div className="w-10 h-10 rounded-xl shrink-0 overflow-hidden shadow">
@@ -103,12 +104,12 @@ export default function InstallPrompt() {
 
           {/* Text */}
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-bold text-white leading-tight">
+            <p className="text-xs font-bold text-slate-900 leading-tight">
               {lang === 'bn' ? 'RS Paper অ্যাপ ইনস্টল করুন' : 'Install RS Paper App'}
             </p>
-            <p className="text-[11px] text-slate-400 leading-snug mt-0.5">
+            <p className="text-[11px] text-slate-500 leading-snug mt-0.5">
               {isIOS ? (
-                <><Share className="w-3 h-3 inline mb-0.5 text-blue-400" /> Share → <strong className="text-slate-200">Add to Home Screen</strong></>
+                <><Share className="w-3 h-3 inline mb-0.5 text-blue-500" /> Share → <strong className="text-slate-700">Add to Home Screen</strong></>
               ) : (
                 lang === 'bn'
                   ? 'হোম স্ক্রিনে রাখুন — অফলাইনেও চলবে'
@@ -122,11 +123,11 @@ export default function InstallPrompt() {
             <button
               onClick={handleInstall}
               disabled={installing}
-              className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 active:scale-95 disabled:opacity-60 text-slate-950 text-[11px] font-bold rounded-lg shadow transition"
+              className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 active:scale-95 disabled:opacity-60 text-white text-[11px] font-bold rounded-lg shadow transition"
             >
               <Download className="w-3.5 h-3.5" />
               {installing
-                ? (lang === 'bn' ? '...' : '...')
+                ? '...'
                 : (lang === 'bn' ? 'ইনস্টল' : 'Install')}
             </button>
           )}
@@ -134,7 +135,7 @@ export default function InstallPrompt() {
           {/* Dismiss */}
           <button
             onClick={handleDismiss}
-            className="shrink-0 text-slate-500 hover:text-white p-1 rounded-lg transition"
+            className="shrink-0 text-slate-400 hover:text-slate-700 p-1 rounded-lg transition"
             title={lang === 'bn' ? 'এখন না' : 'Not now'}
           >
             <X className="w-4 h-4" />
