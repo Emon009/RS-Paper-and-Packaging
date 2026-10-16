@@ -1,0 +1,77 @@
+{
+  "name": "RS Paper and Packaging - আর.এস. পেপার",
+  "short_name": "RS Paper",
+  "description": "পেপার ফ্যাক্টরি ইনভেন্টরি, বিক্রয় ও দেনা-পাওনা হিসাব ব্যবস্থাপনা",
+  "start_url": "/",
+  "id": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "window-controls-overlay", "minimal-ui"],
+  "orientation": "portrait-primary",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "lang": "bn",
+  "categories": ["business", "finance", "productivity"],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "নতুন বিক্রয় চালান (New Sale)",
+      "short_name": "বিক্রয়",
+      "description": "নতুন কাস্টমার বিক্রয় চালান তৈরি করুন",
+      "url": "/?action=new-sale",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "নতুন ক্রয় চালান (New Purchase)",
+      "short_name": "ক্রয়",
+      "description": "নতুন পেপার ক্রয় চালান সংরক্ষণ করুন",
+      "url": "/?action=new-purchase",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "গোডাউন স্টক (Godown Stock)",
+      "short_name": "স্টক",
+      "description": "টিস্যু ও কাটিং পেপার স্টক দেখুন",
+      "url": "/?tab=stock",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "দেনা-পাওনা লেজার (Ledger)",
+      "short_name": "লেজার",
+      "description": "কাস্টমার ও সাপ্লায়ার বকেয়া হিসাব",
+      "url": "/?tab=ledger",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

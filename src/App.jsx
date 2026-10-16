@@ -12,6 +12,7 @@ import PartyAccountsView from './components/PartyAccountsView';
 import PartyAccountModal from './components/PartyAccountModal';
 import LoginScreen from './components/LoginScreen';
 import BottomNav from './components/BottomNav';
+import InstallPrompt from './components/InstallPrompt';
 import { PlusCircle, ShoppingBag, ShoppingCart, RefreshCw, Sparkles } from 'lucide-react';
 import { useLanguage } from './i18n/LanguageContext';
 
@@ -90,6 +91,31 @@ export default function App() {
       .finally(() => {
         setAuthChecking(false);
       });
+  }, []);
+
+  // Handle PWA shortcuts from URL query params (e.g., ?action=new-sale or ?tab=stock)
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const action = params.get('action');
+      const tab = params.get('tab');
+
+      if (action === 'new-sale') {
+        setSaleModalState({ isOpen: true, initialParty: null });
+      } else if (action === 'new-purchase') {
+        setPurchaseModalState({ isOpen: true, initialParty: null });
+      }
+
+      if (tab && ['dashboard', 'stock', 'ledger', 'accounts'].includes(tab)) {
+        setActiveTab(tab);
+      }
+
+      if (action || tab) {
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+    } catch (e) {
+      console.warn('Could not parse PWA launch URL params', e);
+    }
   }, []);
 
   const handleLoginSuccess = (token) => {
@@ -396,6 +422,9 @@ export default function App() {
           });
         }}
       />
+
+      {/* PWA In-App Install Prompt / Guide */}
+      <InstallPrompt />
     </div>
   );
 }
