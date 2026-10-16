@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { ShoppingBag, ShoppingCart, Search, Eye, Trash2, Calendar, FileText, Phone } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ShoppingBag, ShoppingCart, Search, Eye, Trash2, Calendar, FileText, Phone, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { formatCurrency, formatQty, formatDate } from '../utils/format';
 import { useLanguage } from '../i18n/LanguageContext';
 
@@ -13,6 +13,8 @@ export default function TransactionHistory({
   const { t, lang } = useLanguage();
   const [filterType, setFilterType] = useState(mode);
   const [search, setSearch] = useState('');
+  const [pageSize, setPageSize] = useState(8);
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Combine or filter
   let combined = [];
@@ -32,6 +34,36 @@ export default function TransactionHistory({
     const q = search.toLowerCase();
     return name.includes(q) || id.includes(q);
   });
+
+  // Reset to first page when filter, search or page size changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterType, search, mode, pageSize]);
+
+  // Pagination calculation
+  const totalItems = filtered.length;
+  const totalPages = Math.ceil(totalItems / pageSize) || 1;
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const startIndex = (safeCurrentPage - 1) * pageSize;
+  const endIndex = Math.min(startIndex + pageSize, totalItems);
+  const paginatedItems = filtered.slice(startIndex, endIndex);
+
+  // Numbered Carousel / Smart range generator
+  const getPageNumbers = () => {
+    const pages = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      if (safeCurrentPage <= 4) {
+        pages.push(1, 2, 3, 4, 5, '...', totalPages);
+      } else if (safeCurrentPage >= totalPages - 3) {
+        pages.push(1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
+      } else {
+        pages.push(1, '...', safeCurrentPage - 1, safeCurrentPage, safeCurrentPage + 1, '...', totalPages);
+      }
+    }
+    return pages;
+  };
 
   const modeTitle = mode === 'purchases'
     ? t('rawMaterialPurchaseList')
@@ -104,7 +136,7 @@ export default function TransactionHistory({
             {t('noTransactions')}
           </div>
         ) : (
-          filtered.map((item) => {
+          paginatedItems.map((item) => {
             const isSale = item.txnType === 'sale';
             const partyName = isSale ? item.customerName : item.supplierName;
             const partyPhone = isSale ? item.customerPhone : item.supplierPhone;
@@ -223,7 +255,7 @@ export default function TransactionHistory({
                 </td>
               </tr>
             ) : (
-              filtered.map((item) => {
+              paginatedItems.map((item) => {
                 const isSale = item.txnType === 'sale';
                 const partyName = isSale ? item.customerName : item.supplierName;
                 const paid = isSale ? item.receivedAmount : item.paidAmount;
@@ -315,6 +347,90 @@ export default function TransactionHistory({
           </tbody>
         </table>
       </div>
+
+      {/* ── Numbered Carousel Pagination Bar ── */}
+      {totalItems > 0 && (
+        <div className="p-3 sm:p-4 bg-slate-50/80 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3">
+          {/* Left: Summary Info and Items per page toggle */}
+          <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5 text-xs text-slate-500 w-full sm:w-auto">
+            <span className="font-medium">
+              {lang === 'bn'
+                ? `মোট ${totalItems} টির মধ্যে ${startIndex + 1}–${endIndex} টি দেখানো হচ্ছে`
+                : `Showing ${startIndex + 1}–${endIndex} of ${totalItems}`}
+            </span>
+            <div className="inline-flex items-center gap-1 bg-white border border-slate-200 rounded-lg p-0.5 text-[11px] shadow-2xs">
+              <span className="text-slate-400 px-1 font-medium">{lang === 'bn' ? 'প্রতি পেজে:' : 'Per page:'}</span>
+              {[5, 10].map((size) => (
+                <button
+                  key={size}
+                  onClick={() => setPageSize(size)}
+                  className={`px-2 py-0.5 rounded-md font-bold transition ${
+                    pageSize === size
+                      ? 'bg-emerald-600 text-white shadow-xs'
+                      : 'text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  {size}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Right: Numbered Page Carousel */}
+          {totalPages > 1 && (
+            <div className="flex items-center gap-1 sm:gap-1.5 overflow-x-auto max-w-full py-0.5">
+              {/* Previous Button */}
+              <button
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={safeCurrentPage === 1}
+                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-semibold transition shadow-xs active:scale-95"
+                title={lang === 'bn' ? 'আগের পেজ' : 'Previous Page'}
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">{lang === 'bn' ? 'আগের' : 'Prev'}</span>
+              </button>
+
+              {/* Numbered Carousel Pages */}
+              <div className="flex items-center gap-1">
+                {getPageNumbers().map((p, idx) => {
+                  if (p === '...') {
+                    return (
+                      <span key={`dots-${idx}`} className="px-1 text-slate-400 text-xs font-bold tracking-widest">
+                        …
+                      </span>
+                    );
+                  }
+                  const isActive = safeCurrentPage === p;
+                  return (
+                    <button
+                      key={p}
+                      onClick={() => setCurrentPage(p)}
+                      className={`min-w-[30px] sm:min-w-[32px] h-7 sm:h-8 px-2 rounded-lg text-xs font-bold transition flex items-center justify-center ${
+                        isActive
+                          ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/30 ring-2 ring-emerald-500/30'
+                          : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 hover:border-slate-300 active:scale-95'
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Next Button */}
+              <button
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={safeCurrentPage === totalPages}
+                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-semibold transition shadow-xs active:scale-95"
+                title={lang === 'bn' ? 'পরের পেজ' : 'Next Page'}
+              >
+                <span className="hidden sm:inline">{lang === 'bn' ? 'পরের' : 'Next'}</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
     </div>
   );
