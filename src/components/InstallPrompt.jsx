@@ -94,7 +94,7 @@ export default function InstallPrompt() {
 
         {/* App Icon */}
         <div className="w-10 h-10 rounded-xl shrink-0 overflow-hidden shadow">
-          <img src="/icon.svg" alt="RS Paper" className="w-10 h-10" />
+          <img src="/icon-192.png" alt="RS Paper" className="w-10 h-10" />
         </div>
 
         {/* Text */}
