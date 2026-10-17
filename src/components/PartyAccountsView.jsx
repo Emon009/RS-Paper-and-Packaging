@@ -420,7 +420,9 @@ export default function PartyAccountsView({ onOpenPartyAccount }) {
 }
 
 // ── Individual Party Card ──
-function PartyCard({ party, type, onClick, t }) {
+function PartyCard({ party, type, onClick, t: propT }) {
+  const { t: contextT, lang } = useLanguage();
+  const t = propT || contextT;
   const isCustomer = type === 'customer';
   const hasDue = (party.netDue || 0) > 0;
 

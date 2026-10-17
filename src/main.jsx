@@ -5,13 +5,17 @@ import './index.css';
 import { LanguageProvider } from './i18n/LanguageContext.jsx';
 import { registerServiceWorker } from './pwaRegister.js';
 
+import ErrorBoundary from './components/ErrorBoundary.jsx';
+
 // Register PWA Service Worker
 registerServiceWorker();
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <LanguageProvider>
-      <App />
-    </LanguageProvider>
+    <ErrorBoundary>
+      <LanguageProvider>
+        <App />
+      </LanguageProvider>
+    </ErrorBoundary>
   </React.StrictMode>,
 );
