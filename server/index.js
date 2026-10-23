@@ -24,7 +24,9 @@ import {
   deleteSupplier,
   exportAsSql,
   verifyAdminPassword,
-  updatePartyPhoto
+  updatePartyPhoto,
+  updateCustomer,
+  updateSupplier
 } from './db.js';
 import { getSupabaseConfigStatus } from './supabaseClient.js';
 
@@ -254,6 +256,28 @@ app.post('/api/customers/:id/photo', async (req, res) => {
   }
 });
 
+app.put('/api/customers/:id', async (req, res) => {
+  try {
+    const { name, phone, address, photo } = req.body;
+    const result = await updateCustomer(req.params.id, { name, phone, address, photo });
+    if (!result.success) return res.status(400).json(result);
+    res.json({ success: true, message: 'কাস্টমার তথ্য সফলভাবে আপডেট হয়েছে', customer: result.customer });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.post('/api/customers/:id/update', async (req, res) => {
+  try {
+    const { name, phone, address, photo } = req.body;
+    const result = await updateCustomer(req.params.id, { name, phone, address, photo });
+    if (!result.success) return res.status(400).json(result);
+    res.json({ success: true, message: 'কাস্টমার তথ্য সফলভাবে আপডেট হয়েছে', customer: result.customer });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 app.delete('/api/customers/:id', async (req, res) => {
   try {
     const deleted = await deleteCustomer(req.params.id);
@@ -312,6 +336,28 @@ app.post('/api/suppliers/:id/photo', async (req, res) => {
     const ok = await updatePartyPhoto(req.params.id, 'supplier', photo);
     if (!ok) return res.status(404).json({ success: false, message: 'সাপ্লায়ার পাওয়া যায়নি' });
     res.json({ success: true, message: 'সাপ্লায়ার ছবি আপডেট হয়েছে', photo });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.put('/api/suppliers/:id', async (req, res) => {
+  try {
+    const { name, phone, address, photo } = req.body;
+    const result = await updateSupplier(req.params.id, { name, phone, address, photo });
+    if (!result.success) return res.status(400).json(result);
+    res.json({ success: true, message: 'সাপ্লায়ার তথ্য সফলভাবে আপডেট হয়েছে', supplier: result.supplier });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.post('/api/suppliers/:id/update', async (req, res) => {
+  try {
+    const { name, phone, address, photo } = req.body;
+    const result = await updateSupplier(req.params.id, { name, phone, address, photo });
+    if (!result.success) return res.status(400).json(result);
+    res.json({ success: true, message: 'সাপ্লায়ার তথ্য সফলভাবে আপডেট হয়েছে', supplier: result.supplier });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

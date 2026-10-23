@@ -138,6 +138,13 @@ const translations = {
     nameRequired: 'Name is required',
     customerSavedSuccess: 'Customer saved successfully!',
     supplierSavedSuccess: 'Supplier saved successfully!',
+    editCustomer: 'Edit Customer Information',
+    editSupplier: 'Edit Supplier Information',
+    editName: 'Edit Name',
+    saveChanges: 'Save Changes',
+    customerUpdatedSuccess: 'Customer updated successfully!',
+    supplierUpdatedSuccess: 'Supplier updated successfully!',
+    edit: 'Edit',
     serverError: 'Could not connect to server',
 
     // ── Purchase Modal ──
@@ -373,6 +380,13 @@ const translations = {
     nameRequired: 'নাম আবশ্যক',
     customerSavedSuccess: 'কাস্টমার তথ্য সফলভাবে সেভ হয়েছে!',
     supplierSavedSuccess: 'সাপ্লায়ার তথ্য সফলভাবে সেভ হয়েছে!',
+    editCustomer: 'কাস্টমার তথ্য এডিট করুন',
+    editSupplier: 'সাপ্লায়ার তথ্য এডিট করুন',
+    editName: 'নাম পরিবর্তন করুন',
+    saveChanges: 'পরিবর্তন সংরক্ষণ করুন',
+    customerUpdatedSuccess: 'কাস্টমার তথ্য সফলভাবে আপডেট হয়েছে!',
+    supplierUpdatedSuccess: 'সাপ্লায়ার তথ্য সফলভাবে আপডেট হয়েছে!',
+    edit: 'এডিট',
     serverError: 'সার্ভারে সংযোগ করা সম্ভব হয়নি',
 
     // ── Purchase Modal ──

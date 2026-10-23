@@ -395,6 +395,7 @@ export default function App() {
         onClose={() => setPartyAccountModal({ isOpen: false, partyInfo: null, type: 'customer' })}
         partyInfo={partyAccountModal.partyInfo}
         type={partyAccountModal.type}
+        onPartyUpdated={fetchData}
         onViewInvoice={(item, type) => setInvoiceModal({ isOpen: true, data: item, type })}
         onAddTransaction={(party, txType) => {
           if (txType === 'sale') {

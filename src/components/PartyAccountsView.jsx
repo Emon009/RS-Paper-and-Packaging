@@ -16,7 +16,8 @@ import {
   PlusCircle,
   X,
   Save,
-  AlertCircle
+  AlertCircle,
+  Pencil
 } from 'lucide-react';
 import { formatCurrency } from '../utils/format';
 import { useLanguage } from '../i18n/LanguageContext';
@@ -30,8 +31,9 @@ export default function PartyAccountsView({ onOpenPartyAccount }) {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
 
-  // Manual Add Modal State
+  // Manual Add / Edit Modal State
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [editingParty, setEditingParty] = useState(null);
   const [formType, setFormType] = useState('customer');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -64,11 +66,24 @@ export default function PartyAccountsView({ onOpenPartyAccount }) {
   }, []);
 
   const openAddModal = (type) => {
+    setEditingParty(null);
     setFormType(type || (activeTab === 'customers' ? 'customer' : 'supplier'));
     setName('');
     setPhone('');
     setAddress('');
     setPhoto('');
+    setErrorMsg('');
+    setSuccessMsg('');
+    setIsAddModalOpen(true);
+  };
+
+  const openEditModal = (party, type) => {
+    setEditingParty(party);
+    setFormType(type || (activeTab === 'customers' ? 'customer' : 'supplier'));
+    setName(party.name || '');
+    setPhone(party.phone || '');
+    setAddress(party.address || '');
+    setPhoto(party.photo || '');
     setErrorMsg('');
     setSuccessMsg('');
     setIsAddModalOpen(true);
@@ -83,18 +98,31 @@ export default function PartyAccountsView({ onOpenPartyAccount }) {
     setSubmitting(true);
     setErrorMsg('');
     setSuccessMsg('');
-    const endpoint = formType === 'customer' ? '/api/customers' : '/api/suppliers';
+
+    const isEdit = Boolean(editingParty);
+    const targetId = editingParty?.id || editingParty?.name;
+    const endpoint = isEdit
+      ? (formType === 'customer' ? `/api/customers/${encodeURIComponent(targetId)}` : `/api/suppliers/${encodeURIComponent(targetId)}`)
+      : (formType === 'customer' ? '/api/customers' : '/api/suppliers');
+
     try {
       const res = await fetch(endpoint, {
-        method: 'POST',
+        method: isEdit ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: name.trim(), phone: phone.trim(), address: address.trim(), photo })
       });
       const data = await res.json();
       if (data.success) {
-        setSuccessMsg(formType === 'customer' ? t('customerSavedSuccess') : t('supplierSavedSuccess'));
+        setSuccessMsg(
+          isEdit
+            ? (formType === 'customer' ? t('customerUpdatedSuccess') : t('supplierUpdatedSuccess'))
+            : (formType === 'customer' ? t('customerSavedSuccess') : t('supplierSavedSuccess'))
+        );
         await fetchData();
-        setTimeout(() => setIsAddModalOpen(false), 800);
+        setTimeout(() => {
+          setIsAddModalOpen(false);
+          setEditingParty(null);
+        }, 800);
       } else {
         setErrorMsg(data.message || t('serverError'));
       }
@@ -232,6 +260,7 @@ export default function PartyAccountsView({ onOpenPartyAccount }) {
                     party={cust}
                     type="customer"
                     onClick={() => onOpenPartyAccount(cust, 'customer')}
+                    onEdit={(p) => openEditModal(p, 'customer')}
                     t={t}
                   />
                 ))
@@ -255,6 +284,7 @@ export default function PartyAccountsView({ onOpenPartyAccount }) {
                     party={supp}
                     type="supplier"
                     onClick={() => onOpenPartyAccount(supp, 'supplier')}
+                    onEdit={(p) => openEditModal(p, 'supplier')}
                     t={t}
                   />
                 ))
@@ -280,9 +310,15 @@ export default function PartyAccountsView({ onOpenPartyAccount }) {
                 </div>
                 <div>
                   <h3 className="text-sm sm:text-base font-bold">
-                    {formType === 'customer' ? t('addNewCustomer') : t('addNewSupplier')}
+                    {editingParty
+                      ? (formType === 'customer' ? t('editCustomer') : t('editSupplier'))
+                      : (formType === 'customer' ? t('addNewCustomer') : t('addNewSupplier'))}
                   </h3>
-                  <p className="text-[10px] sm:text-[11px] text-white/80">{t('manualEntryConfirm')}</p>
+                  <p className="text-[10px] sm:text-[11px] text-white/80">
+                    {editingParty
+                      ? (lang === 'bn' ? 'তথ্য পরিবর্তন ও সংরক্ষণ করুন' : 'Edit details & save')
+                      : t('manualEntryConfirm')}
+                  </p>
                 </div>
               </div>
               <button
@@ -310,26 +346,28 @@ export default function PartyAccountsView({ onOpenPartyAccount }) {
               )}
 
               {/* Type Switcher */}
-              <div className="flex bg-slate-100 p-1 rounded-xl text-xs font-semibold gap-1">
-                <button
-                  type="button"
-                  onClick={() => setFormType('customer')}
-                  className={`flex-1 py-1.5 rounded-lg transition text-center ${
-                    formType === 'customer' ? 'bg-teal-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  {t('customerLabel')}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFormType('supplier')}
-                  className={`flex-1 py-1.5 rounded-lg transition text-center ${
-                    formType === 'supplier' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  {t('supplierLabel')}
-                </button>
-              </div>
+              {!editingParty && (
+                <div className="flex bg-slate-100 p-1 rounded-xl text-xs font-semibold gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setFormType('customer')}
+                    className={`flex-1 py-1.5 rounded-lg transition text-center ${
+                      formType === 'customer' ? 'bg-teal-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    {t('customerLabel')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormType('supplier')}
+                    className={`flex-1 py-1.5 rounded-lg transition text-center ${
+                      formType === 'supplier' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    {t('supplierLabel')}
+                  </button>
+                </div>
+              )}
 
               {/* Photo Upload with Auto Compression */}
               <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-3">
@@ -407,7 +445,7 @@ export default function PartyAccountsView({ onOpenPartyAccount }) {
                   }`}
                 >
                   <Save className="w-4 h-4" />
-                  <span>{submitting ? t('saving') : t('manuallySave')}</span>
+                  <span>{submitting ? t('saving') : (editingParty ? t('saveChanges') : t('manuallySave'))}</span>
                 </button>
               </div>
             </form>
@@ -420,7 +458,7 @@ export default function PartyAccountsView({ onOpenPartyAccount }) {
 }
 
 // ── Individual Party Card ──
-function PartyCard({ party, type, onClick, t: propT }) {
+function PartyCard({ party, type, onClick, onEdit, t: propT }) {
   const { t: contextT, lang } = useLanguage();
   const t = propT || contextT;
   const isCustomer = type === 'customer';
@@ -472,11 +510,24 @@ function PartyCard({ party, type, onClick, t: propT }) {
             </div>
           </div>
 
-          <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full shrink-0 ${
-            isCustomer ? 'bg-teal-100 text-teal-800' : 'bg-indigo-100 text-indigo-800'
-          }`}>
-            {party.invoicesCount || 0} {t('invoicesCount')}
-          </span>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit?.(party, type);
+              }}
+              className="p-1 rounded-md text-slate-400 hover:text-indigo-600 hover:bg-slate-100 transition tap-press"
+              title={lang === 'bn' ? 'এডিট করুন' : 'Edit'}
+            >
+              <Pencil className="w-3.5 h-3.5" />
+            </button>
+            <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full shrink-0 ${
+              isCustomer ? 'bg-teal-100 text-teal-800' : 'bg-indigo-100 text-indigo-800'
+            }`}>
+              {party.invoicesCount || 0} {t('invoicesCount')}
+            </span>
+          </div>
         </div>
 
         {/* Balance Row */}

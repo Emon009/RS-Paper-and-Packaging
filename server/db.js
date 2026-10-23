@@ -404,6 +404,192 @@ export async function updatePartyPhoto(id, type = 'customer', photo = '') {
   return true;
 }
 
+export async function updateCustomer(idOrName, { name, phone, address, photo }) {
+  const data = await loadData();
+  const customer = (data.customers || []).find(c =>
+    c.id === idOrName || c.name.toLowerCase() === idOrName.toLowerCase()
+  );
+  if (!customer) return { success: false, message: 'কাস্টমার পাওয়া যায়নি' };
+
+  const trimmedNewName = name !== undefined ? name.trim() : customer.name;
+  if (!trimmedNewName) {
+    return { success: false, message: 'কাস্টমারের নাম খালি রাখা যাবে না' };
+  }
+
+  const oldName = customer.name;
+  const nameChanged = oldName.toLowerCase() !== trimmedNewName.toLowerCase();
+
+  if (nameChanged) {
+    const existing = (data.customers || []).find(c =>
+      c.id !== customer.id && c.name.toLowerCase() === trimmedNewName.toLowerCase()
+    );
+    if (existing) {
+      return { success: false, message: 'এই নামের কাস্টমার ইতিমধ্যে রয়েছে' };
+    }
+  }
+
+  customer.name = trimmedNewName;
+  if (phone !== undefined) customer.phone = (phone || '').trim();
+  if (address !== undefined) customer.address = (address || '').trim();
+  if (photo !== undefined) customer.photo = (photo || '').trim();
+
+  // Supabase update for customer
+  await supabaseUpsert('customers', {
+    id: customer.id,
+    name: customer.name,
+    phone: customer.phone,
+    address: customer.address,
+    photo: customer.photo,
+    created_at: customer.createdAt
+  });
+
+  // Cascade to sales & payments if name changed
+  if (nameChanged) {
+    if (isSupabaseConfigured() && supabase) {
+      try {
+        await supabase
+          .from('sales')
+          .update({ customer_name: customer.name })
+          .ilike('customer_name', oldName);
+      } catch (e) {
+        console.warn('Supabase cascade update sales error:', e.message);
+      }
+      try {
+        await supabase
+          .from('payments')
+          .update({ party_name: customer.name })
+          .eq('type', 'customer_collection')
+          .ilike('party_name', oldName);
+      } catch (e) {
+        console.warn('Supabase cascade update payments error:', e.message);
+      }
+    }
+
+    if (!IS_VERCEL && localFallbackAvailable) {
+      const localData = loadLocalData();
+      (localData.sales || []).forEach(s => {
+        if (s.customerName && s.customerName.toLowerCase() === oldName.toLowerCase()) {
+          s.customerName = customer.name;
+        }
+      });
+      (localData.payments || []).forEach(p => {
+        if (p.type === 'customer_collection' && p.partyName && p.partyName.toLowerCase() === oldName.toLowerCase()) {
+          p.partyName = customer.name;
+        }
+      });
+      const cIdx = (localData.customers || []).findIndex(c => c.id === customer.id);
+      if (cIdx !== -1) {
+        localData.customers[cIdx] = customer;
+      }
+      saveLocalData(localData);
+    }
+  } else {
+    if (!IS_VERCEL && localFallbackAvailable) {
+      const localData = loadLocalData();
+      const cIdx = (localData.customers || []).findIndex(c => c.id === customer.id);
+      if (cIdx !== -1) {
+        localData.customers[cIdx] = customer;
+        saveLocalData(localData);
+      }
+    }
+  }
+
+  return { success: true, customer };
+}
+
+export async function updateSupplier(idOrName, { name, phone, address, photo }) {
+  const data = await loadData();
+  const supplier = (data.suppliers || []).find(s =>
+    s.id === idOrName || s.name.toLowerCase() === idOrName.toLowerCase()
+  );
+  if (!supplier) return { success: false, message: 'সাপ্লায়ার পাওয়া যায়নি' };
+
+  const trimmedNewName = name !== undefined ? name.trim() : supplier.name;
+  if (!trimmedNewName) {
+    return { success: false, message: 'সাপ্লায়ারের নাম খালি রাখা যাবে না' };
+  }
+
+  const oldName = supplier.name;
+  const nameChanged = oldName.toLowerCase() !== trimmedNewName.toLowerCase();
+
+  if (nameChanged) {
+    const existing = (data.suppliers || []).find(s =>
+      s.id !== supplier.id && s.name.toLowerCase() === trimmedNewName.toLowerCase()
+    );
+    if (existing) {
+      return { success: false, message: 'এই নামের সাপ্লায়ার ইতিমধ্যে রয়েছে' };
+    }
+  }
+
+  supplier.name = trimmedNewName;
+  if (phone !== undefined) supplier.phone = (phone || '').trim();
+  if (address !== undefined) supplier.address = (address || '').trim();
+  if (photo !== undefined) supplier.photo = (photo || '').trim();
+
+  // Supabase update for supplier
+  await supabaseUpsert('suppliers', {
+    id: supplier.id,
+    name: supplier.name,
+    phone: supplier.phone,
+    address: supplier.address,
+    photo: supplier.photo,
+    created_at: supplier.createdAt
+  });
+
+  // Cascade to purchases & payments if name changed
+  if (nameChanged) {
+    if (isSupabaseConfigured() && supabase) {
+      try {
+        await supabase
+          .from('purchases')
+          .update({ supplier_name: supplier.name })
+          .ilike('supplier_name', oldName);
+      } catch (e) {
+        console.warn('Supabase cascade update purchases error:', e.message);
+      }
+      try {
+        await supabase
+          .from('payments')
+          .update({ party_name: supplier.name })
+          .eq('type', 'supplier_payment')
+          .ilike('party_name', oldName);
+      } catch (e) {
+        console.warn('Supabase cascade update payments error:', e.message);
+      }
+    }
+
+    if (!IS_VERCEL && localFallbackAvailable) {
+      const localData = loadLocalData();
+      (localData.purchases || []).forEach(p => {
+        if (p.supplierName && p.supplierName.toLowerCase() === oldName.toLowerCase()) {
+          p.supplierName = supplier.name;
+        }
+      });
+      (localData.payments || []).forEach(p => {
+        if (p.type === 'supplier_payment' && p.partyName && p.partyName.toLowerCase() === oldName.toLowerCase()) {
+          p.partyName = supplier.name;
+        }
+      });
+      const sIdx = (localData.suppliers || []).findIndex(s => s.id === supplier.id);
+      if (sIdx !== -1) {
+        localData.suppliers[sIdx] = supplier;
+      }
+      saveLocalData(localData);
+    }
+  } else {
+    if (!IS_VERCEL && localFallbackAvailable) {
+      const localData = loadLocalData();
+      const sIdx = (localData.suppliers || []).findIndex(s => s.id === supplier.id);
+      if (sIdx !== -1) {
+        localData.suppliers[sIdx] = supplier;
+        saveLocalData(localData);
+      }
+    }
+  }
+
+  return { success: true, supplier };
+}
+
 export async function getAllCustomerFolders() {
   const data = await loadData();
   return Promise.all((data.customers || []).map(c => getCustomerFolderDetails(c.id || c.name)));

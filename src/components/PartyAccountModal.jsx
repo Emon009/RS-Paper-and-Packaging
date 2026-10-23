@@ -15,7 +15,9 @@ import {
   Clock,
   FileText,
   RefreshCw,
-  Camera
+  Camera,
+  Pencil,
+  Check
 } from 'lucide-react';
 import { formatCurrency, formatQty, formatDate } from '../utils/format';
 import { useLanguage } from '../i18n/LanguageContext';
@@ -28,12 +30,17 @@ export default function PartyAccountModal({
   type = 'customer',
   onViewInvoice,
   onAddTransaction,
-  onAddPayment
+  onAddPayment,
+  onPartyUpdated
 }) {
   const { t, lang } = useLanguage();
   const [details, setDetails] = useState(null);
   const [loading, setLoading] = useState(true);
   const [updatingPhoto, setUpdatingPhoto] = useState(false);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editedName, setEditedName] = useState('');
+  const [savingName, setSavingName] = useState(false);
+  const [nameError, setNameError] = useState('');
   const fileInputRef = useRef(null);
 
   const isCustomer = type === 'customer';
@@ -41,9 +48,10 @@ export default function PartyAccountModal({
   const loadDetails = () => {
     if (!partyInfo) return;
     setLoading(true);
+    const targetName = details?.profile?.name || partyInfo.name;
     const endpoint = isCustomer
-      ? `/api/customers/${encodeURIComponent(partyInfo.name)}`
-      : `/api/suppliers/${encodeURIComponent(partyInfo.name)}`;
+      ? `/api/customers/${encodeURIComponent(targetName)}`
+      : `/api/suppliers/${encodeURIComponent(targetName)}`;
 
     fetch(endpoint)
       .then(res => res.json())
@@ -52,6 +60,59 @@ export default function PartyAccountModal({
       })
       .catch(err => console.error(err))
       .finally(() => setLoading(false));
+  };
+
+  const startEditName = () => {
+    const currentName = details?.profile?.name || partyInfo?.name || '';
+    setEditedName(currentName);
+    setNameError('');
+    setIsEditingName(true);
+  };
+
+  const handleSaveName = async (e) => {
+    if (e) e.preventDefault();
+    const trimmed = editedName.trim();
+    if (!trimmed) {
+      setNameError(t('nameRequired'));
+      return;
+    }
+    const currentProfile = details?.profile || partyInfo;
+    const targetId = currentProfile?.id || currentProfile?.name;
+    const endpoint = isCustomer
+      ? `/api/customers/${encodeURIComponent(targetId)}`
+      : `/api/suppliers/${encodeURIComponent(targetId)}`;
+
+    setSavingName(true);
+    setNameError('');
+    try {
+      const res = await fetch(endpoint, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: trimmed })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setIsEditingName(false);
+        setDetails(prev => prev ? {
+          ...prev,
+          profile: { ...(prev.profile || {}), name: trimmed }
+        } : prev);
+        const reloadEndpoint = isCustomer
+          ? `/api/customers/${encodeURIComponent(trimmed)}`
+          : `/api/suppliers/${encodeURIComponent(trimmed)}`;
+        fetch(reloadEndpoint)
+          .then(r => r.json())
+          .then(d => { if (d.success) setDetails(d); })
+          .catch(() => {});
+        onPartyUpdated?.({ ...currentProfile, name: trimmed });
+      } else {
+        setNameError(data.message || t('serverError'));
+      }
+    } catch (err) {
+      setNameError(t('serverError'));
+    } finally {
+      setSavingName(false);
+    }
   };
 
   const handlePhotoUpdate = async (e) => {
@@ -169,12 +230,54 @@ export default function PartyAccountModal({
               />
             </div>
             <div className="min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="text-base sm:text-lg font-bold truncate">{profile.name}</h3>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/20 font-semibold shrink-0">
-                  {isCustomer ? t('customerLedger') : t('supplierLedger')}
-                </span>
-              </div>
+              {isEditingName ? (
+                <form onSubmit={handleSaveName} className="flex flex-col gap-1 py-0.5">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <input
+                      type="text"
+                      value={editedName}
+                      onChange={(e) => setEditedName(e.target.value)}
+                      className="px-2.5 py-1 text-xs sm:text-sm text-slate-900 bg-white rounded-lg border border-white outline-none focus:ring-2 focus:ring-amber-400 font-semibold max-w-[180px] sm:max-w-[240px] shadow-sm"
+                      placeholder={t('nameRequired')}
+                      autoFocus
+                    />
+                    <button
+                      type="submit"
+                      disabled={savingName}
+                      className="px-2.5 py-1 bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white rounded-lg text-xs font-bold transition flex items-center gap-1 shadow-sm cursor-pointer"
+                      title={t('saveChanges')}
+                    >
+                      <Check className="w-3.5 h-3.5" />
+                      <span>{savingName ? '...' : (lang === 'bn' ? 'সেভ' : 'Save')}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setIsEditingName(false); setNameError(''); }}
+                      className="p-1 text-white/80 hover:text-white rounded-lg hover:bg-white/10 text-xs transition cursor-pointer"
+                      title={t('cancel')}
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                  {nameError && (
+                    <span className="text-[10px] text-amber-200 font-medium">{nameError}</span>
+                  )}
+                </form>
+              ) : (
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <h3 className="text-base sm:text-lg font-bold truncate">{profile.name}</h3>
+                  <button
+                    onClick={startEditName}
+                    className="p-1 text-white/70 hover:text-white hover:bg-white/15 rounded-lg transition tap-press cursor-pointer"
+                    title={lang === 'bn' ? 'নাম পরিবর্তন / এডিট করুন' : 'Edit name'}
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/20 font-semibold shrink-0">
+                    {isCustomer ? t('customerLedger') : t('supplierLedger')}
+                  </span>
+                </div>
+              )}
               <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-white/80 mt-0.5">
                 {profile.phone && (
                   <a href={`tel:${profile.phone}`} className="flex items-center gap-1 hover:underline text-white font-medium" title={lang === 'bn' ? 'সরাসরি কল করুন' : 'Call'}>
