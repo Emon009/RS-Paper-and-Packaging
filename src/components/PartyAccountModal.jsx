@@ -17,11 +17,13 @@ import {
   RefreshCw,
   Camera,
   Pencil,
-  Check
+  Check,
+  Trash2
 } from 'lucide-react';
 import { formatCurrency, formatQty, formatDate } from '../utils/format';
 import { useLanguage } from '../i18n/LanguageContext';
 import { compressImage } from '../utils/imageCompressor';
+import DeletePartyModal from './DeletePartyModal';
 
 export default function PartyAccountModal({
   isOpen,
@@ -31,7 +33,9 @@ export default function PartyAccountModal({
   onViewInvoice,
   onAddTransaction,
   onAddPayment,
-  onPartyUpdated
+  onPartyUpdated,
+  onEditTransaction,
+  onPartyDeleted
 }) {
   const { t, lang } = useLanguage();
   const [details, setDetails] = useState(null);
@@ -41,6 +45,7 @@ export default function PartyAccountModal({
   const [editedName, setEditedName] = useState('');
   const [savingName, setSavingName] = useState(false);
   const [nameError, setNameError] = useState('');
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const fileInputRef = useRef(null);
 
   const isCustomer = type === 'customer';
@@ -297,6 +302,13 @@ export default function PartyAccountModal({
 
           <div className="flex items-center gap-1 shrink-0">
             <button
+              onClick={() => setShowDeleteModal(true)}
+              className="p-1.5 rounded-lg text-rose-200 hover:text-white hover:bg-rose-500/25 transition cursor-pointer"
+              title={t('deleteAccount')}
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+            <button
               onClick={loadDetails}
               className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition"
               title={t('refresh')}
@@ -518,18 +530,33 @@ export default function PartyAccountModal({
                               )}
                             </td>
                             <td className="py-2.5 px-3 text-center">
-                              {entry._entryType === 'transaction' && onViewInvoice && (
-                                <button
-                                  onClick={() => onViewInvoice(entry, isCustomer ? 'sale' : 'purchase')}
-                                  className="inline-flex items-center gap-1 text-indigo-600 hover:text-indigo-800 text-[11px] font-semibold"
-                                >
-                                  <FileText className="w-3 h-3" />
-                                  {t('viewInvoice')}
-                                </button>
-                              )}
-                              {entry._entryType === 'payment' && (
-                                <span className="text-[10px] text-emerald-600 font-semibold">✅ OK</span>
-                              )}
+                              <div className="flex items-center justify-center gap-1.5">
+                                {entry._entryType === 'transaction' && onViewInvoice && (
+                                  <button
+                                    onClick={() => onViewInvoice(entry.raw || entry, isCustomer ? 'sale' : 'purchase')}
+                                    className="inline-flex items-center gap-1 text-indigo-600 hover:text-indigo-800 text-[11px] font-semibold"
+                                    title={t('viewInvoice')}
+                                  >
+                                    <FileText className="w-3 h-3" />
+                                    <span>{t('viewInvoice')}</span>
+                                  </button>
+                                )}
+                                {entry._entryType === 'transaction' && onEditTransaction && (
+                                  <button
+                                    onClick={() => {
+                                      onClose();
+                                      onEditTransaction(entry.raw || entry, isCustomer ? 'sale' : 'purchase');
+                                    }}
+                                    className="p-1 text-amber-600 hover:text-amber-800 hover:bg-amber-50 rounded transition"
+                                    title={t('editTransaction')}
+                                  >
+                                    <Pencil className="w-3 h-3" />
+                                  </button>
+                                )}
+                                {entry._entryType === 'payment' && (
+                                  <span className="text-[10px] text-emerald-600 font-semibold">✅ OK</span>
+                                )}
+                              </div>
                             </td>
                           </tr>
                         ))
@@ -557,6 +584,18 @@ export default function PartyAccountModal({
         </div>
 
       </div>
+
+      {/* Secure Delete Party Modal (Admin Password Verification) */}
+      <DeletePartyModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        party={details?.profile || partyInfo}
+        type={type}
+        onSuccess={() => {
+          onClose();
+          onPartyDeleted?.();
+        }}
+      />
     </div>
   );
 }

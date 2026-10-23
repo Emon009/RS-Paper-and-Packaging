@@ -739,6 +739,42 @@ export async function deletePurchase(id) {
   return ok;
 }
 
+export async function updatePurchase(id, purchaseData) {
+  const data = await loadData();
+  const existing = (data.purchases || []).find(p => p.id === id);
+  if (!existing) return null;
+
+  if (purchaseData.supplierName) {
+    await ensureSupplierExists(purchaseData.supplierName, purchaseData.supplierPhone, purchaseData.supplierAddress);
+  }
+
+  const record = {
+    ...existing,
+    ...purchaseData,
+    id,
+    updatedAt: new Date().toISOString()
+  };
+
+  await supabaseUpsert('purchases', {
+    id: record.id, date: record.date, supplier_name: record.supplierName,
+    supplier_phone: record.supplierPhone || '', supplier_address: record.supplierAddress || '',
+    items: record.items || [], sub_total: record.subTotal || 0, discount: record.discount || 0,
+    grand_total: record.grandTotal || 0, paid_amount: record.paidAmount || 0,
+    due_amount: record.dueAmount || 0, payment_method: record.paymentMethod || 'ক্যাশ',
+    notes: record.notes || '', created_at: record.createdAt || record.date
+  });
+
+  if (!IS_VERCEL && localFallbackAvailable) {
+    const localData = loadLocalData();
+    const idx = (localData.purchases || []).findIndex(p => p.id === id);
+    if (idx !== -1) {
+      localData.purchases[idx] = record;
+      saveLocalData(localData);
+    }
+  }
+  return record;
+}
+
 export async function addSale(saleData) {
   await ensureCustomerExists(saleData.customerName, saleData.customerPhone, saleData.customerAddress);
 
@@ -759,6 +795,42 @@ export async function addSale(saleData) {
     localData.sales = localData.sales || [];
     localData.sales.push(record);
     saveLocalData(localData);
+  }
+  return record;
+}
+
+export async function updateSale(id, saleData) {
+  const data = await loadData();
+  const existing = (data.sales || []).find(s => s.id === id);
+  if (!existing) return null;
+
+  if (saleData.customerName) {
+    await ensureCustomerExists(saleData.customerName, saleData.customerPhone, saleData.customerAddress);
+  }
+
+  const record = {
+    ...existing,
+    ...saleData,
+    id,
+    updatedAt: new Date().toISOString()
+  };
+
+  await supabaseUpsert('sales', {
+    id: record.id, date: record.date, customer_name: record.customerName,
+    customer_phone: record.customerPhone || '', customer_address: record.customerAddress || '',
+    items: record.items || [], sub_total: record.subTotal || 0, discount: record.discount || 0,
+    grand_total: record.grandTotal || 0, received_amount: record.receivedAmount || 0,
+    due_amount: record.dueAmount || 0, payment_method: record.paymentMethod || 'ক্যাশ',
+    notes: record.notes || '', created_at: record.createdAt || record.date
+  });
+
+  if (!IS_VERCEL && localFallbackAvailable) {
+    const localData = loadLocalData();
+    const idx = (localData.sales || []).findIndex(s => s.id === id);
+    if (idx !== -1) {
+      localData.sales[idx] = record;
+      saveLocalData(localData);
+    }
   }
   return record;
 }
@@ -804,23 +876,29 @@ export async function deletePayment(id) {
 }
 
 export async function deleteCustomer(id) {
-  const ok = await supabaseDelete('customers', id);
+  const data = await loadData();
+  const customer = (data.customers || []).find(c => c.id === id || c.name.toLowerCase() === id.toLowerCase());
+  const targetId = customer ? customer.id : id;
+  const ok = await supabaseDelete('customers', targetId);
   if (!IS_VERCEL && localFallbackAvailable) {
     const localData = loadLocalData();
-    const idx = (localData.customers || []).findIndex(c => c.id === id);
+    const idx = (localData.customers || []).findIndex(c => c.id === targetId || (customer && c.name.toLowerCase() === customer.name.toLowerCase()));
     if (idx !== -1) { localData.customers.splice(idx, 1); saveLocalData(localData); }
   }
-  return ok;
+  return ok || Boolean(customer);
 }
 
 export async function deleteSupplier(id) {
-  const ok = await supabaseDelete('suppliers', id);
+  const data = await loadData();
+  const supplier = (data.suppliers || []).find(s => s.id === id || s.name.toLowerCase() === id.toLowerCase());
+  const targetId = supplier ? supplier.id : id;
+  const ok = await supabaseDelete('suppliers', targetId);
   if (!IS_VERCEL && localFallbackAvailable) {
     const localData = loadLocalData();
-    const idx = (localData.suppliers || []).findIndex(s => s.id === id);
+    const idx = (localData.suppliers || []).findIndex(s => s.id === targetId || (supplier && s.name.toLowerCase() === supplier.name.toLowerCase()));
     if (idx !== -1) { localData.suppliers.splice(idx, 1); saveLocalData(localData); }
   }
-  return ok;
+  return ok || Boolean(supplier);
 }
 
 // ==========================================

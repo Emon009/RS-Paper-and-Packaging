@@ -3,7 +3,7 @@ import { X, ShoppingCart, Calculator, AlertCircle, AlertTriangle, User, Calendar
 import { formatCurrency, formatQty } from '../utils/format';
 import { useLanguage } from '../i18n/LanguageContext';
 
-export default function SaleModal({ isOpen, onClose, onSuccess, currentStock = {}, initialParty = null }) {
+export default function SaleModal({ isOpen, onClose, onSuccess, currentStock = {}, initialParty = null, editData = null }) {
   const { t, lang } = useLanguage();
   const today = new Date().toISOString().split('T')[0];
 
@@ -29,22 +29,40 @@ export default function SaleModal({ isOpen, onClose, onSuccess, currentStock = {
 
   useEffect(() => {
     if (isOpen) {
-      setFormData({
-        customerName: initialParty?.name || '',
-        customerPhone: initialParty?.phone || '',
-        customerAddress: initialParty?.address || '',
-        date: today,
-        tissueQty: '',
-        tissueRate: '',
-        cuttingQty: '',
-        cuttingRate: '',
-        receivedAmount: '',
-        paymentMethod: 'ক্যাশ',
-        notes: '',
-      });
+      if (editData) {
+        const tissueItem = (editData.items || []).find(i => i.productType === 'tissue');
+        const cuttingItem = (editData.items || []).find(i => i.productType === 'cutting_news');
+        setFormData({
+          customerName: editData.customerName || '',
+          customerPhone: editData.customerPhone || '',
+          customerAddress: editData.customerAddress || '',
+          date: editData.date || today,
+          tissueQty: tissueItem ? String(tissueItem.quantity || '') : '',
+          tissueRate: tissueItem ? String(tissueItem.rate || '') : '',
+          cuttingQty: cuttingItem ? String(cuttingItem.quantity || '') : '',
+          cuttingRate: cuttingItem ? String(cuttingItem.rate || '') : '',
+          receivedAmount: editData.receivedAmount !== undefined ? String(editData.receivedAmount) : '',
+          paymentMethod: editData.paymentMethod || 'ক্যাশ',
+          notes: editData.notes || '',
+        });
+      } else {
+        setFormData({
+          customerName: initialParty?.name || '',
+          customerPhone: initialParty?.phone || '',
+          customerAddress: initialParty?.address || '',
+          date: today,
+          tissueQty: '',
+          tissueRate: '',
+          cuttingQty: '',
+          cuttingRate: '',
+          receivedAmount: '',
+          paymentMethod: 'ক্যাশ',
+          notes: '',
+        });
+      }
       setError('');
     }
-  }, [isOpen, initialParty]);
+  }, [isOpen, initialParty, editData]);
 
   if (!isOpen) return null;
 
@@ -99,9 +117,13 @@ export default function SaleModal({ isOpen, onClose, onSuccess, currentStock = {
 
     setLoading(true);
 
+    const isEdit = Boolean(editData?.id);
+    const url = isEdit ? `/api/sales/${editData.id}` : '/api/sales';
+    const method = isEdit ? 'PUT' : 'POST';
+
     try {
-      const response = await fetch('/api/sales', {
-        method: 'POST',
+      const response = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           customerName: formData.customerName,
@@ -141,8 +163,14 @@ export default function SaleModal({ isOpen, onClose, onSuccess, currentStock = {
               <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-100" />
             </div>
             <div>
-              <h3 className="text-base sm:text-lg font-bold">{t('newSale')}</h3>
-              <p className="text-[11px] sm:text-xs text-emerald-100">{lang === 'bn' ? 'কাস্টমারকে বিক্রয়, ক্যাশ মেমো ও হিসাব সংরক্ষণ' : 'Customer billing & cash memo'}</p>
+              <h3 className="text-base sm:text-lg font-bold">
+                {editData ? t('editSaleEntry') : t('newSale')}
+              </h3>
+              <p className="text-[11px] sm:text-xs text-emerald-100">
+                {editData
+                  ? (lang === 'bn' ? `চালান #${editData.id} এডিট ও সংশোধন করুন` : `Edit invoice #${editData.id}`)
+                  : (lang === 'bn' ? 'কাস্টমারকে বিক্রয়, ক্যাশ মেমো ও হিসাব সংরক্ষণ' : 'Customer billing & cash memo')}
+              </p>
             </div>
           </div>
           <button 
@@ -410,9 +438,9 @@ export default function SaleModal({ isOpen, onClose, onSuccess, currentStock = {
             <button
               type="submit"
               disabled={loading}
-              className="w-full sm:w-auto px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg shadow transition active:scale-95 disabled:opacity-50 text-center tap-press"
+              className="w-full sm:w-auto px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg shadow transition active:scale-95 disabled:opacity-50 text-center tap-press cursor-pointer"
             >
-              {loading ? t('saving') : t('submitSale')}
+              {loading ? t('saving') : (editData ? t('saveChanges') : t('submitSale'))}
             </button>
           </div>
         </form>

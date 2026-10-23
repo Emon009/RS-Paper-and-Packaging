@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingBag, ShoppingCart, Search, Eye, Trash2, Calendar, FileText, Phone, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { ShoppingBag, ShoppingCart, Search, Eye, Trash2, Calendar, FileText, Phone, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Pencil } from 'lucide-react';
 import { formatCurrency, formatQty, formatDate } from '../utils/format';
 import { useLanguage } from '../i18n/LanguageContext';
 
@@ -8,6 +8,7 @@ export default function TransactionHistory({
   sales = [], 
   onViewInvoice, 
   onDeleteTransaction,
+  onEditTransaction,
   mode = 'all' // 'all' | 'purchases' | 'sales'
 }) {
   const { t, lang } = useLanguage();
@@ -180,6 +181,15 @@ export default function TransactionHistory({
                     >
                       <Eye className="w-4 h-4" />
                     </button>
+                    {onEditTransaction && (
+                      <button
+                        onClick={() => onEditTransaction(item, item.txnType)}
+                        title={t('editTransaction')}
+                        className="p-1.5 text-amber-600 hover:text-amber-800 bg-amber-50 rounded-lg transition active:scale-95"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                    )}
                     <button
                       onClick={() => {
                         if (window.confirm(t('confirmDelete'))) {
@@ -326,6 +336,16 @@ export default function TransactionHistory({
                         >
                           <Eye className="w-4 h-4" />
                         </button>
+
+                        {onEditTransaction && (
+                          <button
+                            onClick={() => onEditTransaction(item, item.txnType)}
+                            title={t('editTransaction')}
+                            className="p-1.5 text-amber-600 hover:text-amber-800 hover:bg-amber-50 rounded-lg transition"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                        )}
 
                         <button
                           onClick={() => {

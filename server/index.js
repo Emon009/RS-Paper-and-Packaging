@@ -26,7 +26,9 @@ import {
   verifyAdminPassword,
   updatePartyPhoto,
   updateCustomer,
-  updateSupplier
+  updateSupplier,
+  updatePurchase,
+  updateSale
 } from './db.js';
 import { getSupabaseConfigStatus } from './supabaseClient.js';
 
@@ -280,9 +282,17 @@ app.post('/api/customers/:id/update', async (req, res) => {
 
 app.delete('/api/customers/:id', async (req, res) => {
   try {
+    const { password } = req.body || {};
+    if (!password) {
+      return res.status(401).json({ success: false, message: 'কাস্টমার অ্যাকাউন্ট ডিলিট করতে অ্যাডমিন পাসওয়ার্ড আবশ্যক' });
+    }
+    const isValid = await verifyAdminPassword(password);
+    if (!isValid) {
+      return res.status(401).json({ success: false, message: 'ভুল অ্যাডমিন পাসওয়ার্ড! সঠিক পাসওয়ার্ড দিন।' });
+    }
     const deleted = await deleteCustomer(req.params.id);
     if (!deleted) return res.status(404).json({ success: false, message: 'কাস্টমার রেকর্ড পাওয়া যায়নি' });
-    res.json({ success: true, message: 'কাস্টমার খাতা মুছে ফেলা হয়েছে' });
+    res.json({ success: true, message: 'কাস্টমার খাতা সফলভাবে মুছে ফেলা হয়েছে' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -365,6 +375,14 @@ app.post('/api/suppliers/:id/update', async (req, res) => {
 
 app.delete('/api/suppliers/:id', async (req, res) => {
   try {
+    const { password } = req.body || {};
+    if (!password) {
+      return res.status(401).json({ success: false, message: 'সাপ্লায়ার অ্যাকাউন্ট ডিলিট করতে অ্যাডমিন পাসওয়ার্ড আবশ্যক' });
+    }
+    const isValid = await verifyAdminPassword(password);
+    if (!isValid) {
+      return res.status(401).json({ success: false, message: 'ভুল অ্যাডমিন পাসওয়ার্ড! সঠিক পাসওয়ার্ড দিন।' });
+    }
     const deleted = await deleteSupplier(req.params.id);
     if (!deleted) return res.status(404).json({ success: false, message: 'সাপ্লায়ার রেকর্ড পাওয়া যায়নি' });
     res.json({ success: true, message: 'সাপ্লায়ার খাতা মুছে ফেলা হয়েছে' });
@@ -411,6 +429,72 @@ app.post('/api/purchases', async (req, res) => {
       subTotal, discount: disc, grandTotal, paidAmount: paid, dueAmount, paymentMethod, notes
     });
     res.json({ success: true, message: 'ক্রয় এন্ট্রি সম্পন্ন ও সাপ্লায়ারের খাতায় সংরক্ষিত হয়েছে', purchase: newPurchase, stock: await getGodownStock() });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.put('/api/purchases/:id', async (req, res) => {
+  try {
+    const { date, supplierName, supplierPhone, supplierAddress, items, discount = 0, paidAmount = 0, paymentMethod = 'ক্যাশ', notes = '' } = req.body;
+    if (!supplierName || !date || !items || items.length === 0)
+      return res.status(400).json({ success: false, message: 'সাপ্লায়ার নাম, তারিখ এবং পণ্যের বিবরণ আবশ্যক!' });
+
+    const calculatedItems = items.map(item => {
+      const qty = parseFloat(item.quantity) || 0;
+      const rate = parseFloat(item.rate) || 0;
+      return {
+        productType: item.productType,
+        name: item.name || (item.productType === 'tissue' ? 'Tissue Paper' : 'Cutting / News Paper'),
+        quantity: qty, unit: item.unit || 'কেজি', rate, total: Math.round(qty * rate * 100) / 100
+      };
+    });
+    const subTotal = calculatedItems.reduce((acc, curr) => acc + curr.total, 0);
+    const disc = parseFloat(discount) || 0;
+    const grandTotal = Math.max(0, subTotal - disc);
+    const paid = parseFloat(paidAmount) || 0;
+    const dueAmount = Math.max(0, grandTotal - paid);
+
+    const updated = await updatePurchase(req.params.id, {
+      date, supplierName: supplierName.trim(), supplierPhone: (supplierPhone || '').trim(),
+      supplierAddress: (supplierAddress || '').trim(), items: calculatedItems,
+      subTotal, discount: disc, grandTotal, paidAmount: paid, dueAmount, paymentMethod, notes
+    });
+    if (!updated) return res.status(404).json({ success: false, message: 'ক্রয় চালান পাওয়া যায়নি' });
+    res.json({ success: true, message: 'ক্রয় চালান সফলভাবে আপডেট হয়েছে', purchase: updated, stock: await getGodownStock() });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.post('/api/purchases/:id/update', async (req, res) => {
+  try {
+    const { date, supplierName, supplierPhone, supplierAddress, items, discount = 0, paidAmount = 0, paymentMethod = 'ক্যাশ', notes = '' } = req.body;
+    if (!supplierName || !date || !items || items.length === 0)
+      return res.status(400).json({ success: false, message: 'সাপ্লায়ার নাম, তারিখ এবং পণ্যের বিবরণ আবশ্যক!' });
+
+    const calculatedItems = items.map(item => {
+      const qty = parseFloat(item.quantity) || 0;
+      const rate = parseFloat(item.rate) || 0;
+      return {
+        productType: item.productType,
+        name: item.name || (item.productType === 'tissue' ? 'Tissue Paper' : 'Cutting / News Paper'),
+        quantity: qty, unit: item.unit || 'কেজি', rate, total: Math.round(qty * rate * 100) / 100
+      };
+    });
+    const subTotal = calculatedItems.reduce((acc, curr) => acc + curr.total, 0);
+    const disc = parseFloat(discount) || 0;
+    const grandTotal = Math.max(0, subTotal - disc);
+    const paid = parseFloat(paidAmount) || 0;
+    const dueAmount = Math.max(0, grandTotal - paid);
+
+    const updated = await updatePurchase(req.params.id, {
+      date, supplierName: supplierName.trim(), supplierPhone: (supplierPhone || '').trim(),
+      supplierAddress: (supplierAddress || '').trim(), items: calculatedItems,
+      subTotal, discount: disc, grandTotal, paidAmount: paid, dueAmount, paymentMethod, notes
+    });
+    if (!updated) return res.status(404).json({ success: false, message: 'ক্রয় চালান পাওয়া যায়নি' });
+    res.json({ success: true, message: 'ক্রয় চালান সফলভাবে আপডেট হয়েছে', purchase: updated, stock: await getGodownStock() });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -464,6 +548,72 @@ app.post('/api/sales', async (req, res) => {
       subTotal, discount: disc, grandTotal, receivedAmount: received, dueAmount, paymentMethod, notes
     });
     res.json({ success: true, message: 'বিক্রয় ও বিল কাস্টমারের ব্যক্তিগত খাতায় সংরক্ষিত হয়েছে', sale: newSale, stock: await getGodownStock() });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.put('/api/sales/:id', async (req, res) => {
+  try {
+    const { date, customerName, customerPhone, customerAddress, items, discount = 0, receivedAmount = 0, paymentMethod = 'ক্যাশ', notes = '' } = req.body;
+    if (!customerName || !date || !items || items.length === 0)
+      return res.status(400).json({ success: false, message: 'কাস্টমার নাম, তারিখ এবং পণ্যের বিবরণ আবশ্যক!' });
+
+    const calculatedItems = items.map(item => {
+      const qty = parseFloat(item.quantity) || 0;
+      const rate = parseFloat(item.rate) || 0;
+      return {
+        productType: item.productType,
+        name: item.name || (item.productType === 'tissue' ? 'Tissue Paper' : 'Cutting / News Paper'),
+        quantity: qty, unit: item.unit || 'কেজি', rate, total: Math.round(qty * rate * 100) / 100
+      };
+    });
+    const subTotal = calculatedItems.reduce((acc, curr) => acc + curr.total, 0);
+    const disc = parseFloat(discount) || 0;
+    const grandTotal = Math.max(0, subTotal - disc);
+    const received = parseFloat(receivedAmount) || 0;
+    const dueAmount = Math.max(0, grandTotal - received);
+
+    const updated = await updateSale(req.params.id, {
+      date, customerName: customerName.trim(), customerPhone: (customerPhone || '').trim(),
+      customerAddress: (customerAddress || '').trim(), items: calculatedItems,
+      subTotal, discount: disc, grandTotal, receivedAmount: received, dueAmount, paymentMethod, notes
+    });
+    if (!updated) return res.status(404).json({ success: false, message: 'বিক্রয় চালান পাওয়া যায়নি' });
+    res.json({ success: true, message: 'বিক্রয় চালান সফলভাবে আপডেট হয়েছে', sale: updated, stock: await getGodownStock() });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.post('/api/sales/:id/update', async (req, res) => {
+  try {
+    const { date, customerName, customerPhone, customerAddress, items, discount = 0, receivedAmount = 0, paymentMethod = 'ক্যাশ', notes = '' } = req.body;
+    if (!customerName || !date || !items || items.length === 0)
+      return res.status(400).json({ success: false, message: 'কাস্টমার নাম, তারিখ এবং পণ্যের বিবরণ আবশ্যক!' });
+
+    const calculatedItems = items.map(item => {
+      const qty = parseFloat(item.quantity) || 0;
+      const rate = parseFloat(item.rate) || 0;
+      return {
+        productType: item.productType,
+        name: item.name || (item.productType === 'tissue' ? 'Tissue Paper' : 'Cutting / News Paper'),
+        quantity: qty, unit: item.unit || 'কেজি', rate, total: Math.round(qty * rate * 100) / 100
+      };
+    });
+    const subTotal = calculatedItems.reduce((acc, curr) => acc + curr.total, 0);
+    const disc = parseFloat(discount) || 0;
+    const grandTotal = Math.max(0, subTotal - disc);
+    const received = parseFloat(receivedAmount) || 0;
+    const dueAmount = Math.max(0, grandTotal - received);
+
+    const updated = await updateSale(req.params.id, {
+      date, customerName: customerName.trim(), customerPhone: (customerPhone || '').trim(),
+      customerAddress: (customerAddress || '').trim(), items: calculatedItems,
+      subTotal, discount: disc, grandTotal, receivedAmount: received, dueAmount, paymentMethod, notes
+    });
+    if (!updated) return res.status(404).json({ success: false, message: 'বিক্রয় চালান পাওয়া যায়নি' });
+    res.json({ success: true, message: 'বিক্রয় চালান সফলভাবে আপডেট হয়েছে', sale: updated, stock: await getGodownStock() });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

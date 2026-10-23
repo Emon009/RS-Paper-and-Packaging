@@ -32,11 +32,19 @@ export default function App() {
   const [authChecking, setAuthChecking] = useState(true);
 
   // Modals state
-  const [purchaseModalState, setPurchaseModalState] = useState({ isOpen: false, initialParty: null });
-  const [saleModalState, setSaleModalState] = useState({ isOpen: false, initialParty: null });
+  const [purchaseModalState, setPurchaseModalState] = useState({ isOpen: false, initialParty: null, editData: null });
+  const [saleModalState, setSaleModalState] = useState({ isOpen: false, initialParty: null, editData: null });
   const [invoiceModal, setInvoiceModal] = useState({ isOpen: false, data: null, type: 'sale' });
   const [paymentModal, setPaymentModal] = useState({ isOpen: false, data: {} });
   const [partyAccountModal, setPartyAccountModal] = useState({ isOpen: false, partyInfo: null, type: 'customer' });
+
+  const handleEditTransaction = (item, type) => {
+    if (type === 'sale') {
+      setSaleModalState({ isOpen: true, initialParty: null, editData: item });
+    } else {
+      setPurchaseModalState({ isOpen: true, initialParty: null, editData: item });
+    }
+  };
 
   const fetchData = async () => {
     try {
@@ -290,6 +298,7 @@ export default function App() {
                   purchases={purchases}
                   sales={[]}
                   onViewInvoice={(item) => setInvoiceModal({ isOpen: true, data: item, type: 'purchase' })}
+                  onEditTransaction={(item) => handleEditTransaction(item, 'purchase')}
                   onDeleteTransaction={handleDeleteTransaction}
                   mode="purchases"
                 />
@@ -305,7 +314,7 @@ export default function App() {
                     <p className="text-xs text-slate-500">{t('allCustomerInvoices')}</p>
                   </div>
                   <button
-                    onClick={() => setSaleModalState({ isOpen: true, initialParty: null })}
+                    onClick={() => setSaleModalState({ isOpen: true, initialParty: null, editData: null })}
                     className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg shadow-sm transition"
                   >
                     <PlusCircle className="w-4 h-4" />
@@ -317,6 +326,7 @@ export default function App() {
                   purchases={[]}
                   sales={sales}
                   onViewInvoice={(item) => setInvoiceModal({ isOpen: true, data: item, type: 'sale' })}
+                  onEditTransaction={(item) => handleEditTransaction(item, 'sale')}
                   onDeleteTransaction={handleDeleteTransaction}
                   mode="sales"
                 />
@@ -363,14 +373,16 @@ export default function App() {
       <PurchaseModal
         isOpen={purchaseModalState.isOpen}
         initialParty={purchaseModalState.initialParty}
-        onClose={() => setPurchaseModalState({ isOpen: false, initialParty: null })}
+        editData={purchaseModalState.editData}
+        onClose={() => setPurchaseModalState({ isOpen: false, initialParty: null, editData: null })}
         onSuccess={handlePurchaseSuccess}
       />
 
       <SaleModal
         isOpen={saleModalState.isOpen}
         initialParty={saleModalState.initialParty}
-        onClose={() => setSaleModalState({ isOpen: false, initialParty: null })}
+        editData={saleModalState.editData}
+        onClose={() => setSaleModalState({ isOpen: false, initialParty: null, editData: null })}
         onSuccess={handleSaleSuccess}
         currentStock={stats?.stock}
       />
@@ -381,6 +393,7 @@ export default function App() {
         data={invoiceModal.data}
         type={invoiceModal.type}
         company={company}
+        onEdit={(item, type) => handleEditTransaction(item, type)}
       />
 
       <PaymentModal
@@ -396,12 +409,14 @@ export default function App() {
         partyInfo={partyAccountModal.partyInfo}
         type={partyAccountModal.type}
         onPartyUpdated={fetchData}
+        onPartyDeleted={fetchData}
+        onEditTransaction={handleEditTransaction}
         onViewInvoice={(item, type) => setInvoiceModal({ isOpen: true, data: item, type })}
         onAddTransaction={(party, txType) => {
           if (txType === 'sale') {
-            setSaleModalState({ isOpen: true, initialParty: party });
+            setSaleModalState({ isOpen: true, initialParty: party, editData: null });
           } else {
-            setPurchaseModalState({ isOpen: true, initialParty: party });
+            setPurchaseModalState({ isOpen: true, initialParty: party, editData: null });
           }
         }}
         onAddPayment={(party, payType) => {

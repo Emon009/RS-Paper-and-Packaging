@@ -1,9 +1,9 @@
 import React from 'react';
-import { X, Printer, Building2, CheckCircle2 } from 'lucide-react';
+import { X, Printer, Building2, CheckCircle2, Pencil } from 'lucide-react';
 import { formatCurrency, formatQty, formatDate } from '../utils/format';
 import { useLanguage } from '../i18n/LanguageContext';
 
-export default function InvoiceModal({ isOpen, onClose, data, type = 'sale', company = {} }) {
+export default function InvoiceModal({ isOpen, onClose, data, type = 'sale', company = {}, onEdit }) {
   const { t, lang } = useLanguage();
   if (!isOpen || !data) return null;
 
@@ -31,6 +31,19 @@ export default function InvoiceModal({ isOpen, onClose, data, type = 'sale', com
             </span>
           </span>
           <div className="flex items-center gap-2 shrink-0">
+            {onEdit && (
+              <button
+                onClick={() => {
+                  onClose();
+                  onEdit(data, type);
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold rounded-lg shadow transition active:scale-95 cursor-pointer"
+                title={t('editTransaction')}
+              >
+                <Pencil className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <span>{lang === 'bn' ? 'এডিট চালান' : 'Edit'}</span>
+              </button>
+            )}
             <button
               onClick={handlePrint}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg shadow transition active:scale-95"

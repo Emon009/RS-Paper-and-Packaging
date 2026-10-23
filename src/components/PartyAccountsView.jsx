@@ -17,11 +17,13 @@ import {
   X,
   Save,
   AlertCircle,
-  Pencil
+  Pencil,
+  Trash2
 } from 'lucide-react';
 import { formatCurrency } from '../utils/format';
 import { useLanguage } from '../i18n/LanguageContext';
 import PhotoUpload from './PhotoUpload';
+import DeletePartyModal from './DeletePartyModal';
 
 export default function PartyAccountsView({ onOpenPartyAccount }) {
   const { t, lang } = useLanguage();
@@ -34,6 +36,7 @@ export default function PartyAccountsView({ onOpenPartyAccount }) {
   // Manual Add / Edit Modal State
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingParty, setEditingParty] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const [formType, setFormType] = useState('customer');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -261,6 +264,7 @@ export default function PartyAccountsView({ onOpenPartyAccount }) {
                     type="customer"
                     onClick={() => onOpenPartyAccount(cust, 'customer')}
                     onEdit={(p) => openEditModal(p, 'customer')}
+                    onDelete={(p) => setDeleteTarget({ party: p, type: 'customer' })}
                     t={t}
                   />
                 ))
@@ -285,6 +289,7 @@ export default function PartyAccountsView({ onOpenPartyAccount }) {
                     type="supplier"
                     onClick={() => onOpenPartyAccount(supp, 'supplier')}
                     onEdit={(p) => openEditModal(p, 'supplier')}
+                    onDelete={(p) => setDeleteTarget({ party: p, type: 'supplier' })}
                     t={t}
                   />
                 ))
@@ -453,12 +458,21 @@ export default function PartyAccountsView({ onOpenPartyAccount }) {
         </div>
       )}
 
+      {/* ── Secure Delete Party Modal (Admin Password Verification) ── */}
+      <DeletePartyModal
+        isOpen={Boolean(deleteTarget)}
+        onClose={() => setDeleteTarget(null)}
+        party={deleteTarget?.party}
+        type={deleteTarget?.type}
+        onSuccess={fetchData}
+      />
+
     </div>
   );
 }
 
 // ── Individual Party Card ──
-function PartyCard({ party, type, onClick, onEdit, t: propT }) {
+function PartyCard({ party, type, onClick, onEdit, onDelete, t: propT }) {
   const { t: contextT, lang } = useLanguage();
   const t = propT || contextT;
   const isCustomer = type === 'customer';
@@ -517,10 +531,21 @@ function PartyCard({ party, type, onClick, onEdit, t: propT }) {
                 e.stopPropagation();
                 onEdit?.(party, type);
               }}
-              className="p-1 rounded-md text-slate-400 hover:text-indigo-600 hover:bg-slate-100 transition tap-press"
+              className="p-1 rounded-md text-slate-400 hover:text-indigo-600 hover:bg-slate-100 transition tap-press cursor-pointer"
               title={lang === 'bn' ? 'এডিট করুন' : 'Edit'}
             >
               <Pencil className="w-3.5 h-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete?.(party, type);
+              }}
+              className="p-1 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition tap-press cursor-pointer"
+              title={lang === 'bn' ? 'অ্যাকাউন্ট ডিলিট করুন' : 'Delete account'}
+            >
+              <Trash2 className="w-3.5 h-3.5" />
             </button>
             <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full shrink-0 ${
               isCustomer ? 'bg-teal-100 text-teal-800' : 'bg-indigo-100 text-indigo-800'

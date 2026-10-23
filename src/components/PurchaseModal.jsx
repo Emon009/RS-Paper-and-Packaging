@@ -3,7 +3,7 @@ import { X, ShoppingBag, Calculator, AlertCircle, CheckCircle2, User, Calendar, 
 import { formatCurrency } from '../utils/format';
 import { useLanguage } from '../i18n/LanguageContext';
 
-export default function PurchaseModal({ isOpen, onClose, onSuccess, initialParty = null }) {
+export default function PurchaseModal({ isOpen, onClose, onSuccess, initialParty = null, editData = null }) {
   const { t, lang } = useLanguage();
   const today = new Date().toISOString().split('T')[0];
 
@@ -26,22 +26,40 @@ export default function PurchaseModal({ isOpen, onClose, onSuccess, initialParty
 
   useEffect(() => {
     if (isOpen) {
-      setFormData({
-        supplierName: initialParty?.name || '',
-        supplierPhone: initialParty?.phone || '',
-        supplierAddress: initialParty?.address || '',
-        date: today,
-        tissueQty: '',
-        tissueRate: '',
-        cuttingQty: '',
-        cuttingRate: '',
-        paidAmount: '',
-        paymentMethod: 'ক্যাশ',
-        notes: '',
-      });
+      if (editData) {
+        const tissueItem = (editData.items || []).find(i => i.productType === 'tissue');
+        const cuttingItem = (editData.items || []).find(i => i.productType === 'cutting_news');
+        setFormData({
+          supplierName: editData.supplierName || '',
+          supplierPhone: editData.supplierPhone || '',
+          supplierAddress: editData.supplierAddress || '',
+          date: editData.date || today,
+          tissueQty: tissueItem ? String(tissueItem.quantity || '') : '',
+          tissueRate: tissueItem ? String(tissueItem.rate || '') : '',
+          cuttingQty: cuttingItem ? String(cuttingItem.quantity || '') : '',
+          cuttingRate: cuttingItem ? String(cuttingItem.rate || '') : '',
+          paidAmount: editData.paidAmount !== undefined ? String(editData.paidAmount) : '',
+          paymentMethod: editData.paymentMethod || 'ক্যাশ',
+          notes: editData.notes || '',
+        });
+      } else {
+        setFormData({
+          supplierName: initialParty?.name || '',
+          supplierPhone: initialParty?.phone || '',
+          supplierAddress: initialParty?.address || '',
+          date: today,
+          tissueQty: '',
+          tissueRate: '',
+          cuttingQty: '',
+          cuttingRate: '',
+          paidAmount: '',
+          paymentMethod: 'ক্যাশ',
+          notes: '',
+        });
+      }
       setError('');
     }
-  }, [isOpen, initialParty]);
+  }, [isOpen, initialParty, editData]);
 
   if (!isOpen) return null;
 
@@ -96,9 +114,13 @@ export default function PurchaseModal({ isOpen, onClose, onSuccess, initialParty
 
     setLoading(true);
 
+    const isEdit = Boolean(editData?.id);
+    const url = isEdit ? `/api/purchases/${editData.id}` : '/api/purchases';
+    const method = isEdit ? 'PUT' : 'POST';
+
     try {
-      const response = await fetch('/api/purchases', {
-        method: 'POST',
+      const response = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           supplierName: formData.supplierName,
@@ -138,8 +160,14 @@ export default function PurchaseModal({ isOpen, onClose, onSuccess, initialParty
               <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-200" />
             </div>
             <div>
-              <h3 className="text-base sm:text-lg font-bold">{t('newPurchase')}</h3>
-              <p className="text-[11px] sm:text-xs text-indigo-200">{lang === 'bn' ? 'সাপ্লায়ার থেকে পেপার চালান ও বিল সংরক্ষণ' : 'Supplier invoice & inventory entry'}</p>
+              <h3 className="text-base sm:text-lg font-bold">
+                {editData ? t('editPurchaseEntry') : t('newPurchase')}
+              </h3>
+              <p className="text-[11px] sm:text-xs text-indigo-200">
+                {editData
+                  ? (lang === 'bn' ? `চালান #${editData.id} এডিট ও সংশোধন করুন` : `Edit invoice #${editData.id}`)
+                  : (lang === 'bn' ? 'সাপ্লায়ার থেকে পেপার চালান ও বিল সংরক্ষণ' : 'Supplier invoice & inventory entry')}
+              </p>
             </div>
           </div>
           <button 
@@ -395,9 +423,9 @@ export default function PurchaseModal({ isOpen, onClose, onSuccess, initialParty
             <button
               type="submit"
               disabled={loading}
-              className="w-full sm:w-auto px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg shadow transition active:scale-95 disabled:opacity-50 text-center tap-press"
+              className="w-full sm:w-auto px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg shadow transition active:scale-95 disabled:opacity-50 text-center tap-press cursor-pointer"
             >
-              {loading ? t('saving') : t('submit')}
+              {loading ? t('saving') : (editData ? t('saveChanges') : t('submit'))}
             </button>
           </div>
         </form>
