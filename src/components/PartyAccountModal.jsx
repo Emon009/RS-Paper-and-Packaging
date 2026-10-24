@@ -50,18 +50,23 @@ export default function PartyAccountModal({
 
   const isCustomer = type === 'customer';
 
-  const loadDetails = () => {
-    if (!partyInfo) return;
+  const loadDetails = (partyToLoad) => {
+    const targetParty = partyToLoad || partyInfo;
+    if (!targetParty) return;
     setLoading(true);
-    const targetName = details?.profile?.name || partyInfo.name;
+    const targetIdentifier = (targetParty.id || targetParty.name || '').trim();
+    if (!targetIdentifier) return;
+
     const endpoint = isCustomer
-      ? `/api/customers/${encodeURIComponent(targetName)}`
-      : `/api/suppliers/${encodeURIComponent(targetName)}`;
+      ? `/api/customers/${encodeURIComponent(targetIdentifier)}`
+      : `/api/suppliers/${encodeURIComponent(targetIdentifier)}`;
 
     fetch(endpoint)
       .then(res => res.json())
       .then(data => {
-        if (data.success) setDetails(data);
+        if (data.success) {
+          setDetails(data);
+        }
       })
       .catch(err => console.error(err))
       .finally(() => setLoading(false));
@@ -98,18 +103,13 @@ export default function PartyAccountModal({
       const data = await res.json();
       if (data.success) {
         setIsEditingName(false);
+        const updatedProfile = { ...(details?.profile || partyInfo || {}), name: trimmed };
         setDetails(prev => prev ? {
           ...prev,
-          profile: { ...(prev.profile || {}), name: trimmed }
+          profile: updatedProfile
         } : prev);
-        const reloadEndpoint = isCustomer
-          ? `/api/customers/${encodeURIComponent(trimmed)}`
-          : `/api/suppliers/${encodeURIComponent(trimmed)}`;
-        fetch(reloadEndpoint)
-          .then(r => r.json())
-          .then(d => { if (d.success) setDetails(d); })
-          .catch(() => {});
-        onPartyUpdated?.({ ...currentProfile, name: trimmed });
+        loadDetails(updatedProfile);
+        onPartyUpdated?.(updatedProfile);
       } else {
         setNameError(data.message || t('serverError'));
       }
@@ -161,9 +161,15 @@ export default function PartyAccountModal({
 
   useEffect(() => {
     if (isOpen && partyInfo) {
-      loadDetails();
+      setDetails(null);
+      setIsEditingName(false);
+      setNameError('');
+      loadDetails(partyInfo);
+    } else {
+      setDetails(null);
+      setIsEditingName(false);
     }
-  }, [isOpen, partyInfo, type]);
+  }, [isOpen, partyInfo?.id, partyInfo?.name, type]);
 
   if (!isOpen || !partyInfo) return null;
 

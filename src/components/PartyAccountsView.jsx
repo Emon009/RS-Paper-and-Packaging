@@ -259,7 +259,7 @@ export default function PartyAccountsView({ onOpenPartyAccount }) {
               ) : (
                 filteredCustomers.map(cust => (
                   <PartyCard
-                    key={cust.id}
+                    key={cust.id || cust.name}
                     party={cust}
                     type="customer"
                     onClick={() => onOpenPartyAccount(cust, 'customer')}
@@ -284,7 +284,7 @@ export default function PartyAccountsView({ onOpenPartyAccount }) {
               ) : (
                 filteredSuppliers.map(supp => (
                   <PartyCard
-                    key={supp.id}
+                    key={supp.id || supp.name}
                     party={supp}
                     type="supplier"
                     onClick={() => onOpenPartyAccount(supp, 'supplier')}
