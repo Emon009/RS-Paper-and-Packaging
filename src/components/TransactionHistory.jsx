@@ -17,6 +17,11 @@ export default function TransactionHistory({
   const [pageSize, setPageSize] = useState(8);
   const [currentPage, setCurrentPage] = useState(1);
 
+  // Sync filterType if mode prop changes
+  useEffect(() => {
+    setFilterType(mode);
+  }, [mode]);
+
   // Combine or filter
   let combined = [];
   if (filterType === 'all' || filterType === 'purchases') {
@@ -191,11 +196,7 @@ export default function TransactionHistory({
                       </button>
                     )}
                     <button
-                      onClick={() => {
-                        if (window.confirm(t('confirmDelete'))) {
-                          onDeleteTransaction(item.id, item.txnType);
-                        }
-                      }}
+                      onClick={() => onDeleteTransaction(item.id, item.txnType)}
                       title={t('delete')}
                       className="p-1.5 text-rose-500 hover:text-rose-700 bg-rose-50 rounded-lg transition active:scale-95"
                     >
@@ -348,11 +349,7 @@ export default function TransactionHistory({
                         )}
 
                         <button
-                          onClick={() => {
-                            if (window.confirm(t('confirmDelete'))) {
-                              onDeleteTransaction(item.id, item.txnType);
-                            }
-                          }}
+                          onClick={() => onDeleteTransaction(item.id, item.txnType)}
                           title={t('delete')}
                           className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition"
                         >

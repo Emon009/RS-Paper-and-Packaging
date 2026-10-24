@@ -36,7 +36,10 @@ export default function DeletePartyModal({
     try {
       const res = await fetch(endpoint, {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-password': password
+        },
         body: JSON.stringify({ password })
       });
       const data = await res.json();

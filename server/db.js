@@ -182,21 +182,21 @@ export async function loadData() {
       })),
       purchases: purchases.map(p => ({
         id: p.id, date: p.date, supplierName: p.supplier_name, supplierPhone: p.supplier_phone || '',
-        supplierAddress: p.supplier_address || '', items: p.items || [], subTotal: p.sub_total,
-        discount: p.discount, grandTotal: p.grand_total, paidAmount: p.paid_amount,
-        dueAmount: p.due_amount, paymentMethod: p.payment_method || 'ক্যাশ', notes: p.notes || '',
+        supplierAddress: p.supplier_address || '', items: p.items || [], subTotal: Number(p.sub_total || 0),
+        discount: Number(p.discount || 0), grandTotal: Number(p.grand_total || 0), paidAmount: Number(p.paid_amount || 0),
+        dueAmount: Number(p.due_amount || 0), paymentMethod: p.payment_method || 'ক্যাশ', notes: p.notes || '',
         createdAt: p.created_at
       })),
       sales: sales.map(s => ({
         id: s.id, date: s.date, customerName: s.customer_name, customerPhone: s.customer_phone || '',
-        customerAddress: s.customer_address || '', items: s.items || [], subTotal: s.sub_total,
-        discount: s.discount, grandTotal: s.grand_total, receivedAmount: s.received_amount,
-        dueAmount: s.due_amount, paymentMethod: s.payment_method || 'ক্যাশ', notes: s.notes || '',
+        customerAddress: s.customer_address || '', items: s.items || [], subTotal: Number(s.sub_total || 0),
+        discount: Number(s.discount || 0), grandTotal: Number(s.grand_total || 0), receivedAmount: Number(s.received_amount || 0),
+        dueAmount: Number(s.due_amount || 0), paymentMethod: s.payment_method || 'ক্যাশ', notes: s.notes || '',
         createdAt: s.created_at
       })),
       payments: payments.map(p => ({
         id: p.id, type: p.type, partyName: p.party_name, partyPhone: p.party_phone || '',
-        amount: p.amount, date: p.date, paymentMethod: p.payment_method || 'ক্যাশ',
+        amount: Number(p.amount || 0), date: p.date, paymentMethod: p.payment_method || 'ক্যাশ',
         notes: p.notes || '', createdAt: p.created_at
       }))
     };

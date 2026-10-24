@@ -280,9 +280,9 @@ app.post('/api/customers/:id/update', async (req, res) => {
   }
 });
 
-app.delete('/api/customers/:id', async (req, res) => {
+const handleCustomerDelete = async (req, res) => {
   try {
-    const { password } = req.body || {};
+    const password = req.body?.password || req.headers['x-admin-password'] || req.query?.password;
     if (!password) {
       return res.status(401).json({ success: false, message: 'কাস্টমার অ্যাকাউন্ট ডিলিট করতে অ্যাডমিন পাসওয়ার্ড আবশ্যক' });
     }
@@ -296,7 +296,10 @@ app.delete('/api/customers/:id', async (req, res) => {
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
-});
+};
+
+app.delete('/api/customers/:id', handleCustomerDelete);
+app.post('/api/customers/:id/delete', handleCustomerDelete);
 
 // ── 4. Suppliers ──
 app.get('/api/suppliers', async (req, res) => {
@@ -373,9 +376,9 @@ app.post('/api/suppliers/:id/update', async (req, res) => {
   }
 });
 
-app.delete('/api/suppliers/:id', async (req, res) => {
+const handleSupplierDelete = async (req, res) => {
   try {
-    const { password } = req.body || {};
+    const password = req.body?.password || req.headers['x-admin-password'] || req.query?.password;
     if (!password) {
       return res.status(401).json({ success: false, message: 'সাপ্লায়ার অ্যাকাউন্ট ডিলিট করতে অ্যাডমিন পাসওয়ার্ড আবশ্যক' });
     }
@@ -389,7 +392,10 @@ app.delete('/api/suppliers/:id', async (req, res) => {
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
-});
+};
+
+app.delete('/api/suppliers/:id', handleSupplierDelete);
+app.post('/api/suppliers/:id/delete', handleSupplierDelete);
 
 // ── 5. Purchases ──
 app.get('/api/purchases', async (req, res) => {

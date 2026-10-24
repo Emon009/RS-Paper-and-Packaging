@@ -151,7 +151,10 @@ export default function App() {
   };
 
   const handleDeleteTransaction = async (id, type) => {
-    if (!window.confirm('আপনি কি নিশ্চিত যে এই রেকর্ডটি ডিলিট করতে চান? এতে গোডাউনের স্টক পুনরায় সমন্বয় হবে।')) {
+    const confirmMsg = lang === 'bn'
+      ? 'আপনি কি নিশ্চিত যে এই রেকর্ডটি ডিলিট করতে চান? এতে গোডাউনের স্টক পুনরায় সমন্বয় হবে।'
+      : 'Are you sure you want to delete this record? Warehouse stock will be adjusted accordingly.';
+    if (!window.confirm(confirmMsg)) {
       return;
     }
 
@@ -162,10 +165,10 @@ export default function App() {
       if (data.success) {
         fetchData();
       } else {
-        alert(data.message || 'ডিলিট করা সম্ভব হয়নি');
+        alert(data.message || (lang === 'bn' ? 'ডিলিট করা সম্ভব হয়নি' : 'Failed to delete record'));
       }
     } catch (err) {
-      alert('সার্ভার এর সাথে সংযোগ ব্যর্থ');
+      alert(lang === 'bn' ? 'সার্ভার এর সাথে সংযোগ ব্যর্থ' : 'Connection to server failed');
     }
   };
 

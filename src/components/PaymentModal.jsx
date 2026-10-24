@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, DollarSign, Calendar, AlertCircle } from 'lucide-react';
 import { formatCurrency } from '../utils/format';
 import { useLanguage } from '../i18n/LanguageContext';
 
 export default function PaymentModal({ isOpen, onClose, onSuccess, initialData = {} }) {
   const { t, lang } = useLanguage();
-  if (!isOpen) return null;
 
   const today = new Date().toISOString().split('T')[0];
   const isSupplier = initialData.type === 'supplier_payment';
@@ -21,6 +20,22 @@ export default function PaymentModal({ isOpen, onClose, onSuccess, initialData =
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (isOpen) {
+      setFormData({
+        partyName: initialData.partyName || '',
+        partyPhone: initialData.partyPhone || '',
+        amount: initialData.suggestedAmount || '',
+        date: today,
+        paymentMethod: 'ক্যাশ',
+        notes: '',
+      });
+      setError('');
+    }
+  }, [isOpen, initialData]);
+
+  if (!isOpen) return null;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
