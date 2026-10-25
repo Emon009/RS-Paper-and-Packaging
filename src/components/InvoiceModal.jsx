@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Printer, Building2, CheckCircle2, Pencil } from 'lucide-react';
+import { X, Printer, Building2, CheckCircle2, Pencil, AlertTriangle, TrendingUp } from 'lucide-react';
 import { formatCurrency, formatQty, formatDate } from '../utils/format';
 import { useLanguage } from '../i18n/LanguageContext';
 
@@ -131,6 +131,43 @@ export default function InvoiceModal({ isOpen, onClose, data, type = 'sale', com
               </div>
             </div>
 
+            {/* ── Previous Due Carry-Forward Notice Banner ── */}
+            {hasPreviousDue && (
+              <div className={`mb-4 sm:mb-6 rounded-xl border-2 overflow-hidden ${isSale ? 'border-amber-400' : 'border-rose-400'}`}>
+                {/* Banner Header */}
+                <div className={`flex items-center gap-2 px-3 sm:px-4 py-2 ${isSale ? 'bg-amber-500' : 'bg-rose-500'}`}>
+                  <AlertTriangle className="w-4 h-4 text-white shrink-0" />
+                  <span className="text-white text-xs font-bold uppercase tracking-wider">
+                    {lang === 'bn'
+                      ? '⚠ পূর্ববর্তী বকেয়ার বিবরণ'
+                      : '⚠ Previous Outstanding Balance Notice'}
+                  </span>
+                </div>
+                {/* Banner Body */}
+                <div className={`px-3 sm:px-4 py-3 ${isSale ? 'bg-amber-50' : 'bg-rose-50'}`}>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className={`text-xs font-semibold ${isSale ? 'text-amber-900' : 'text-rose-900'}`}>
+                        {lang === 'bn'
+                          ? `${partyName}-এর এই চালানের পূর্বে মোট বকেয়া ছিল:`
+                          : `${partyName}'s outstanding balance before this invoice:`}
+                      </p>
+                      <p className={`text-[11px] mt-0.5 ${isSale ? 'text-amber-700' : 'text-rose-700'}`}>
+                        {lang === 'bn'
+                          ? 'এই পূর্ববর্তী বকেয়া নিচের হিসাবে যোগ করা হয়েছে'
+                          : 'This previous due has been added in the calculation below'}
+                      </p>
+                    </div>
+                    <div className="text-right shrink-0 ml-3">
+                      <span className={`text-xl sm:text-2xl font-black ${isSale ? 'text-amber-800' : 'text-rose-800'}`}>
+                        {new Intl.NumberFormat('bn-BD', { style: 'currency', currency: 'BDT', maximumFractionDigits: 0 }).format(previousDue).replace('BDT', '৳')}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Product Table (Horizontal scroll wrapper for mobile) */}
             <div className="overflow-x-auto touch-scroll mb-4 sm:mb-6">
               <table className="w-full text-left border-collapse text-xs sm:text-sm min-w-[500px]">
@@ -200,8 +237,9 @@ export default function InvoiceModal({ isOpen, onClose, data, type = 'sale', com
 
                 {/* ── Previous Due Carry-Forward Section ── */}
                 {hasPreviousDue && (
-                  <div className="flex justify-between py-1.5 border-b border-dashed border-amber-400 text-amber-800 bg-amber-50 px-2 rounded">
-                    <span className="font-semibold text-xs">
+                  <div className={`flex justify-between items-center py-1.5 border-b border-dashed px-2 rounded ${isSale ? 'border-amber-400 text-amber-800 bg-amber-50' : 'border-rose-400 text-rose-800 bg-rose-50'}`}>
+                    <span className="font-semibold text-xs flex items-center gap-1">
+                      <TrendingUp className="w-3.5 h-3.5" />
                       {lang === 'bn' ? '+ পূর্ববর্তী বকেয়া' : '+ Previous Outstanding'}:
                     </span>
                     <span className="font-bold">{formatCurrency(previousDue)}</span>
@@ -226,11 +264,14 @@ export default function InvoiceModal({ isOpen, onClose, data, type = 'sale', com
 
                 {/* Total Outstanding (with previous due) */}
                 {hasPreviousDue && (
-                  <div className={`flex justify-between py-2 mt-1 font-extrabold text-sm sm:text-base rounded-lg px-2 border-2 ${isSale ? 'bg-amber-100 border-amber-400 text-amber-900' : 'bg-rose-100 border-rose-400 text-rose-900'}`}>
-                    <span className="leading-tight">
-                      {lang === 'bn' ? 'মোট বকেয়া\n(এই চালান + পূর্ববর্তী)' : 'Total Outstanding\n(incl. prev. due)'}:
-                    </span>
-                    <span className="text-right">{formatCurrency(data.dueAmount + previousDue)}</span>
+                  <div className={`mt-2 rounded-xl overflow-hidden border-2 ${isSale ? 'border-amber-500' : 'border-rose-500'}`}>
+                    <div className={`px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-center ${isSale ? 'bg-amber-500 text-white' : 'bg-rose-500 text-white'}`}>
+                      {lang === 'bn' ? 'মোট বকেয়া (এই চালান + পূর্ববর্তী)' : 'Total Outstanding (incl. prev. due)'}
+                    </div>
+                    <div className={`flex justify-between items-center py-2.5 px-3 font-extrabold text-sm sm:text-base ${isSale ? 'bg-amber-100 text-amber-900' : 'bg-rose-100 text-rose-900'}`}>
+                      <span>{lang === 'bn' ? 'এখন মোট পরিশোধযোগ্য:' : 'Now Total Payable:'}</span>
+                      <span className="text-lg sm:text-xl">{formatCurrency(data.dueAmount + previousDue)}</span>
+                    </div>
                   </div>
                 )}
               </div>
