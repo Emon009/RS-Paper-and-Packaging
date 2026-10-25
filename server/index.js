@@ -397,6 +397,32 @@ const handleSupplierDelete = async (req, res) => {
 app.delete('/api/suppliers/:id', handleSupplierDelete);
 app.post('/api/suppliers/:id/delete', handleSupplierDelete);
 
+// ── Party Previous Due Lookup ──
+// Used by SaleModal / PurchaseModal to show carry-forward balance before new invoice
+app.get('/api/party-due/customer/:name', async (req, res) => {
+  try {
+    const name = decodeURIComponent(req.params.name).trim();
+    if (!name) return res.json({ success: true, netDue: 0 });
+    const folder = await getCustomerFolderDetails(name);
+    if (!folder) return res.json({ success: true, netDue: 0, isNew: true });
+    res.json({ success: true, netDue: folder.summary.netDue || 0, partyName: folder.customer.name });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message, netDue: 0 });
+  }
+});
+
+app.get('/api/party-due/supplier/:name', async (req, res) => {
+  try {
+    const name = decodeURIComponent(req.params.name).trim();
+    if (!name) return res.json({ success: true, netDue: 0 });
+    const folder = await getSupplierFolderDetails(name);
+    if (!folder) return res.json({ success: true, netDue: 0, isNew: true });
+    res.json({ success: true, netDue: folder.summary.netDue || 0, partyName: folder.supplier.name });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message, netDue: 0 });
+  }
+});
+
 // ── 5. Purchases ──
 app.get('/api/purchases', async (req, res) => {
   try {
@@ -410,7 +436,7 @@ app.get('/api/purchases', async (req, res) => {
 
 app.post('/api/purchases', async (req, res) => {
   try {
-    const { date, supplierName, supplierPhone, supplierAddress, items, discount = 0, paidAmount = 0, paymentMethod = 'ক্যাশ', notes = '' } = req.body;
+    const { date, supplierName, supplierPhone, supplierAddress, items, discount = 0, paidAmount = 0, paymentMethod = 'ক্যাশ', notes = '', previousDue = 0 } = req.body;
     if (!supplierName || !date || !items || items.length === 0)
       return res.status(400).json({ success: false, message: 'সাপ্লায়ার নাম, তারিখ এবং পণ্যের বিবরণ আবশ্যক!' });
 
@@ -428,11 +454,13 @@ app.post('/api/purchases', async (req, res) => {
     const grandTotal = Math.max(0, subTotal - disc);
     const paid = parseFloat(paidAmount) || 0;
     const dueAmount = Math.max(0, grandTotal - paid);
+    const prevDue = Math.max(0, parseFloat(previousDue) || 0);
 
     const newPurchase = await addPurchase({
       date, supplierName: supplierName.trim(), supplierPhone: (supplierPhone || '').trim(),
       supplierAddress: (supplierAddress || '').trim(), items: calculatedItems,
-      subTotal, discount: disc, grandTotal, paidAmount: paid, dueAmount, paymentMethod, notes
+      subTotal, discount: disc, grandTotal, paidAmount: paid, dueAmount,
+      paymentMethod, notes, previousDue: prevDue
     });
     res.json({ success: true, message: 'ক্রয় এন্ট্রি সম্পন্ন ও সাপ্লায়ারের খাতায় সংরক্ষিত হয়েছে', purchase: newPurchase, stock: await getGodownStock() });
   } catch (error) {
@@ -529,7 +557,7 @@ app.get('/api/sales', async (req, res) => {
 
 app.post('/api/sales', async (req, res) => {
   try {
-    const { date, customerName, customerPhone, customerAddress, items, discount = 0, receivedAmount = 0, paymentMethod = 'ক্যাশ', notes = '' } = req.body;
+    const { date, customerName, customerPhone, customerAddress, items, discount = 0, receivedAmount = 0, paymentMethod = 'ক্যাশ', notes = '', previousDue = 0 } = req.body;
     if (!customerName || !date || !items || items.length === 0)
       return res.status(400).json({ success: false, message: 'কাস্টমার নাম, তারিখ এবং পণ্যের বিবরণ আবশ্যক!' });
 
@@ -547,11 +575,13 @@ app.post('/api/sales', async (req, res) => {
     const grandTotal = Math.max(0, subTotal - disc);
     const received = parseFloat(receivedAmount) || 0;
     const dueAmount = Math.max(0, grandTotal - received);
+    const prevDue = Math.max(0, parseFloat(previousDue) || 0);
 
     const newSale = await addSale({
       date, customerName: customerName.trim(), customerPhone: (customerPhone || '').trim(),
       customerAddress: (customerAddress || '').trim(), items: calculatedItems,
-      subTotal, discount: disc, grandTotal, receivedAmount: received, dueAmount, paymentMethod, notes
+      subTotal, discount: disc, grandTotal, receivedAmount: received, dueAmount,
+      paymentMethod, notes, previousDue: prevDue
     });
     res.json({ success: true, message: 'বিক্রয় ও বিল কাস্টমারের ব্যক্তিগত খাতায় সংরক্ষিত হয়েছে', sale: newSale, stock: await getGodownStock() });
   } catch (error) {

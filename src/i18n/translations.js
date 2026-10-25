@@ -224,6 +224,16 @@ const translations = {
     invoiceNote: 'Goods once sold will not be taken back.',
     kg: 'kg',
 
+    // ── Previous Due Carry-Forward ──
+    previousDue: 'Previous Outstanding Due',
+    previousDueShort: 'Prev. Due',
+    totalWithDue: 'Total Payable (incl. prev. due)',
+    noPreviousDue: 'No previous outstanding',
+    checkingDue: 'Checking previous balance...',
+    previousDueNote: 'Previous balance carried forward from earlier transactions',
+    previousDueWarning: 'This customer has an outstanding due from previous transactions.',
+    previousDueSupplierWarning: 'You have outstanding payment due to this supplier from previous transactions.',
+
     // ── Party Account Modal ──
     accountSummary: 'Account Summary',
     totalBilled: 'Total Billed',
@@ -476,6 +486,16 @@ const translations = {
     thankYou: 'আপনার ব্যবসার জন্য ধন্যবাদ!',
     invoiceNote: 'বিক্রিত পণ্য ফেরতযোগ্য নয়।',
     kg: 'কেজি',
+
+    // ── Previous Due Carry-Forward ──
+    previousDue: 'পূর্ববর্তী বকেয়া',
+    previousDueShort: 'পূর্ব বকেয়া',
+    totalWithDue: 'মোট পরিশোধযোগ্য (পূর্ব বকেয়াসহ)',
+    noPreviousDue: 'পূর্ববর্তী কোনো বকেয়া নেই',
+    checkingDue: 'পূর্ববর্তী ব্যালেন্স যাচাই হচ্ছে...',
+    previousDueNote: 'পূর্ববর্তী লেনদেন থেকে বকেয়া সামনে যুক্ত হয়েছে',
+    previousDueWarning: 'এই কাস্টমারের পূর্বের লেনদেন থেকে বকেয়া রয়েছে।',
+    previousDueSupplierWarning: 'এই সাপ্লায়ারকে পূর্বের লেনদেন থেকে টাকা পরিশোধ বাকি আছে।',
 
     // ── Party Account Modal ──
     accountSummary: 'হিসাবের সারসংক্ষেপ',

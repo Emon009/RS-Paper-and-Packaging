@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { X, ShoppingCart, Calculator, AlertCircle, AlertTriangle, User, Calendar, Phone, CheckCircle2 } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { X, ShoppingCart, Calculator, AlertCircle, AlertTriangle, User, Calendar, Phone, CheckCircle2, Clock } from 'lucide-react';
 import { formatCurrency, formatQty } from '../utils/format';
 import { useLanguage } from '../i18n/LanguageContext';
 
@@ -27,6 +27,29 @@ export default function SaleModal({ isOpen, onClose, onSuccess, currentStock = {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // Previous Due state
+  const [previousDue, setPreviousDue] = useState(0);
+  const [dueLoading, setDueLoading] = useState(false);
+  const dueTimerRef = useRef(null);
+
+  // Fetch previous due for a customer name
+  const fetchPreviousDue = useCallback(async (name) => {
+    if (!name || name.trim().length < 2) {
+      setPreviousDue(0);
+      return;
+    }
+    setDueLoading(true);
+    try {
+      const res = await fetch(`/api/party-due/customer/${encodeURIComponent(name.trim())}`);
+      const data = await res.json();
+      setPreviousDue(data.success ? (data.netDue || 0) : 0);
+    } catch {
+      setPreviousDue(0);
+    } finally {
+      setDueLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (isOpen) {
       if (editData) {
@@ -45,6 +68,8 @@ export default function SaleModal({ isOpen, onClose, onSuccess, currentStock = {
           paymentMethod: editData.paymentMethod || 'ক্যাশ',
           notes: editData.notes || '',
         });
+        // For edit mode, previousDue should NOT be shown (it is already baked in)
+        setPreviousDue(0);
       } else {
         setFormData({
           customerName: initialParty?.name || '',
@@ -59,10 +84,30 @@ export default function SaleModal({ isOpen, onClose, onSuccess, currentStock = {
           paymentMethod: 'ক্যাশ',
           notes: '',
         });
+        // Fetch previous due for pre-filled party
+        if (initialParty?.name) {
+          fetchPreviousDue(initialParty.name);
+        } else {
+          setPreviousDue(0);
+        }
       }
       setError('');
     }
   }, [isOpen, initialParty, editData]);
+
+  // Debounced lookup when user types a customer name
+  const handleCustomerNameChange = (value) => {
+    setFormData(prev => ({ ...prev, customerName: value }));
+    if (editData) return; // No lookup in edit mode
+    clearTimeout(dueTimerRef.current);
+    setPreviousDue(0);
+    if (value.trim().length >= 2) {
+      setDueLoading(true);
+      dueTimerRef.current = setTimeout(() => fetchPreviousDue(value), 600);
+    } else {
+      setDueLoading(false);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -78,6 +123,7 @@ export default function SaleModal({ isOpen, onClose, onSuccess, currentStock = {
   const grandTotal = tissueTotal + cuttingTotal;
   const received = parseFloat(formData.receivedAmount) || 0;
   const dueAmount = Math.max(0, grandTotal - received);
+  const totalWithPreviousDue = grandTotal + previousDue;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -135,6 +181,7 @@ export default function SaleModal({ isOpen, onClose, onSuccess, currentStock = {
           receivedAmount: received,
           paymentMethod: formData.paymentMethod,
           notes: formData.notes,
+          previousDue: !isEdit ? previousDue : 0,
         }),
       });
 
@@ -151,6 +198,8 @@ export default function SaleModal({ isOpen, onClose, onSuccess, currentStock = {
       setLoading(false);
     }
   };
+
+  const isEditMode = Boolean(editData?.id);
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4">
@@ -202,7 +251,7 @@ export default function SaleModal({ isOpen, onClose, onSuccess, currentStock = {
                   required
                   placeholder={t('customerNamePlaceholder')}
                   value={formData.customerName}
-                  onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
+                  onChange={(e) => handleCustomerNameChange(e.target.value)}
                   className="w-full pl-8 pr-3 py-2 text-base sm:text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
                 />
                 <User className="w-4 h-4 text-slate-400 absolute left-2.5 top-2.5" />
@@ -242,6 +291,35 @@ export default function SaleModal({ isOpen, onClose, onSuccess, currentStock = {
               </div>
             </div>
           </div>
+
+          {/* Previous Due Banner (only for new sales, not edits) */}
+          {!isEditMode && (
+            dueLoading ? (
+              <div className="flex items-center gap-2 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-500 animate-pulse">
+                <Clock className="w-4 h-4 shrink-0 text-slate-400" />
+                <span>{t('checkingDue')}</span>
+              </div>
+            ) : previousDue > 0 ? (
+              <div className="flex items-start gap-2.5 px-3.5 py-3 bg-amber-50 border border-amber-300 rounded-xl">
+                <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-bold text-amber-800">
+                    {t('previousDueWarning')}
+                  </p>
+                  <div className="flex items-center justify-between mt-1.5">
+                    <span className="text-[11px] text-amber-700">{t('previousDue')}</span>
+                    <span className="text-sm font-extrabold text-amber-800">{formatCurrency(previousDue)}</span>
+                  </div>
+                  <p className="text-[10px] text-amber-600 mt-1">{t('previousDueNote')}</p>
+                </div>
+              </div>
+            ) : formData.customerName.trim().length >= 2 ? (
+              <div className="flex items-center gap-2 px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-700">
+                <CheckCircle2 className="w-4 h-4 shrink-0" />
+                <span>{t('noPreviousDue')}</span>
+              </div>
+            ) : null
+          )}
 
           {/* Paper Sale Items */}
           <div className="border border-slate-200 rounded-xl p-3 sm:p-4 bg-slate-50/60 space-y-3 sm:space-y-4">
@@ -355,12 +433,21 @@ export default function SaleModal({ isOpen, onClose, onSuccess, currentStock = {
               {t('paymentTitle')}
             </h4>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3 mb-3">
-              {/* Grand Total */}
+            {/* Grand Total + Previous Due + Total With Due */}
+            <div className={`grid gap-2.5 sm:gap-3 mb-3 ${!isEditMode && previousDue > 0 ? 'grid-cols-1 sm:grid-cols-3' : 'grid-cols-1 sm:grid-cols-3'}`}>
+              {/* Grand Total (this invoice) */}
               <div className="bg-white p-3 rounded-lg border border-slate-200 flex justify-between sm:block items-center">
                 <span className="block text-xs text-slate-500 font-medium">{t('grandTotal')}</span>
                 <span className="text-base sm:text-lg font-bold text-slate-800">{formatCurrency(grandTotal)}</span>
               </div>
+
+              {/* Previous Due (if exists) */}
+              {!isEditMode && previousDue > 0 && (
+                <div className="bg-amber-50 p-3 rounded-lg border border-amber-200 flex justify-between sm:block items-center">
+                  <span className="block text-xs text-amber-700 font-semibold">{t('previousDueShort')}</span>
+                  <span className="text-base sm:text-lg font-bold text-amber-800">{formatCurrency(previousDue)}</span>
+                </div>
+              )}
 
               {/* Received Amount */}
               <div className="bg-white p-3 rounded-lg border border-emerald-200">
@@ -380,13 +467,14 @@ export default function SaleModal({ isOpen, onClose, onSuccess, currentStock = {
                   />
                 </div>
               </div>
+            </div>
 
-              {/* Due Amount */}
-              <div className={`p-3 rounded-lg border flex justify-between sm:block items-center ${dueAmount > 0 ? 'bg-amber-50 border-amber-200' : 'bg-emerald-50 border-emerald-200'}`}>
+            {/* Due Summary Row */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3 mb-3">
+              {/* This Invoice Due */}
+              <div className={`p-3 rounded-lg border flex justify-between items-center ${dueAmount > 0 ? 'bg-amber-50 border-amber-200' : 'bg-emerald-50 border-emerald-200'}`}>
                 <div>
-                  <span className="block text-xs font-semibold text-slate-700">
-                    {t('dueAmount')}
-                  </span>
+                  <span className="block text-xs font-semibold text-slate-700">{t('dueAmount')}</span>
                   {dueAmount === 0 && grandTotal > 0 && (
                     <span className="text-[10px] text-emerald-600 block">{lang === 'bn' ? 'ক্যাশ পরিশোধিত' : 'Fully Paid'}</span>
                   )}
@@ -395,6 +483,19 @@ export default function SaleModal({ isOpen, onClose, onSuccess, currentStock = {
                   {formatCurrency(dueAmount)}
                 </span>
               </div>
+
+              {/* Total (with previous due) */}
+              {!isEditMode && previousDue > 0 && (
+                <div className="p-3 rounded-lg border bg-rose-50 border-rose-200 flex justify-between items-center">
+                  <div>
+                    <span className="block text-xs font-bold text-rose-800">{t('totalWithDue')}</span>
+                    <span className="text-[10px] text-rose-600 block">{lang === 'bn' ? `বর্তমান + পূর্ববর্তী` : 'Current + previous'}</span>
+                  </div>
+                  <span className="text-base sm:text-lg font-extrabold text-rose-800">
+                    {formatCurrency(dueAmount + previousDue)}
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* Payment Method & Notes */}

@@ -185,14 +185,14 @@ export async function loadData() {
         supplierAddress: p.supplier_address || '', items: p.items || [], subTotal: Number(p.sub_total || 0),
         discount: Number(p.discount || 0), grandTotal: Number(p.grand_total || 0), paidAmount: Number(p.paid_amount || 0),
         dueAmount: Number(p.due_amount || 0), paymentMethod: p.payment_method || 'ক্যাশ', notes: p.notes || '',
-        createdAt: p.created_at
+        previousDue: Number(p.previous_due || 0), createdAt: p.created_at
       })),
       sales: sales.map(s => ({
         id: s.id, date: s.date, customerName: s.customer_name, customerPhone: s.customer_phone || '',
         customerAddress: s.customer_address || '', items: s.items || [], subTotal: Number(s.sub_total || 0),
         discount: Number(s.discount || 0), grandTotal: Number(s.grand_total || 0), receivedAmount: Number(s.received_amount || 0),
         dueAmount: Number(s.due_amount || 0), paymentMethod: s.payment_method || 'ক্যাশ', notes: s.notes || '',
-        createdAt: s.created_at
+        previousDue: Number(s.previous_due || 0), createdAt: s.created_at
       })),
       payments: payments.map(p => ({
         id: p.id, type: p.type, partyName: p.party_name, partyPhone: p.party_phone || '',
@@ -717,7 +717,7 @@ export async function addPurchase(purchaseData) {
     items: record.items || [], sub_total: record.subTotal || 0, discount: record.discount || 0,
     grand_total: record.grandTotal || 0, paid_amount: record.paidAmount || 0,
     due_amount: record.dueAmount || 0, payment_method: record.paymentMethod || 'ক্যাশ',
-    notes: record.notes || '', created_at: record.createdAt
+    notes: record.notes || '', previous_due: record.previousDue || 0, created_at: record.createdAt
   });
 
   if (!IS_VERCEL && localFallbackAvailable) {
@@ -787,7 +787,7 @@ export async function addSale(saleData) {
     items: record.items || [], sub_total: record.subTotal || 0, discount: record.discount || 0,
     grand_total: record.grandTotal || 0, received_amount: record.receivedAmount || 0,
     due_amount: record.dueAmount || 0, payment_method: record.paymentMethod || 'ক্যাশ',
-    notes: record.notes || '', created_at: record.createdAt
+    notes: record.notes || '', previous_due: record.previousDue || 0, created_at: record.createdAt
   });
 
   if (!IS_VERCEL && localFallbackAvailable) {

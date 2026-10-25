@@ -11,8 +11,14 @@ export default function InvoiceModal({ isOpen, onClose, data, type = 'sale', com
   const partyTitle = isSale ? t('customerName') : t('supplierName');
   const partyName = isSale ? data.customerName : data.supplierName;
   const partyPhone = isSale ? data.customerPhone : data.supplierPhone;
-  const invoiceTitle = isSale ? (lang === 'bn' ? 'ক্যাশ মেমো / বিক্রয় চালান' : 'CASH MEMO / SALE INVOICE') : (lang === 'bn' ? 'ক্রয় চালান ও ভাউচার' : 'PURCHASE VOUCHER');
+  const invoiceTitle = isSale
+    ? (lang === 'bn' ? 'ক্যাশ মেমো / বিক্রয় চালান' : 'CASH MEMO / SALE INVOICE')
+    : (lang === 'bn' ? 'ক্রয় চালান ও ভাউচার' : 'PURCHASE VOUCHER');
   const paidField = isSale ? data.receivedAmount : data.paidAmount;
+
+  // Previous due carry-forward (stored in invoice data)
+  const previousDue = Number(data.previousDue || 0);
+  const hasPreviousDue = previousDue > 0;
 
   const handlePrint = () => {
     window.print();
@@ -171,12 +177,14 @@ export default function InvoiceModal({ isOpen, onClose, data, type = 'sale', com
                 <p className="italic text-[11px] text-slate-400">{t('invoiceNote')}</p>
               </div>
 
-              <div className="w-full sm:w-64 space-y-1.5 text-xs sm:text-sm">
+              <div className="w-full sm:w-72 space-y-1.5 text-xs sm:text-sm">
+                {/* Sub Total */}
                 <div className="flex justify-between py-1 border-b border-slate-100">
                   <span className="text-slate-600">{t('subTotal')}:</span>
                   <span className="font-semibold">{formatCurrency(data.subTotal || data.grandTotal)}</span>
                 </div>
 
+                {/* Discount */}
                 {data.discount > 0 && (
                   <div className="flex justify-between py-1 border-b border-slate-100 text-rose-600">
                     <span>{t('discountRow')}:</span>
@@ -184,16 +192,29 @@ export default function InvoiceModal({ isOpen, onClose, data, type = 'sale', com
                   </div>
                 )}
 
+                {/* Net Payable (this invoice) */}
                 <div className="flex justify-between py-1.5 border-b-2 border-slate-900 font-bold text-sm sm:text-base text-slate-900">
                   <span>{t('netPayable')}:</span>
                   <span>{formatCurrency(data.grandTotal)}</span>
                 </div>
 
+                {/* ── Previous Due Carry-Forward Section ── */}
+                {hasPreviousDue && (
+                  <div className="flex justify-between py-1.5 border-b border-dashed border-amber-400 text-amber-800 bg-amber-50 px-2 rounded">
+                    <span className="font-semibold text-xs">
+                      {lang === 'bn' ? '+ পূর্ববর্তী বকেয়া' : '+ Previous Outstanding'}:
+                    </span>
+                    <span className="font-bold">{formatCurrency(previousDue)}</span>
+                  </div>
+                )}
+
+                {/* Amount Paid */}
                 <div className="flex justify-between py-1 text-emerald-700 font-semibold">
                   <span>{t('amountPaid')}:</span>
                   <span>{formatCurrency(paidField)}</span>
                 </div>
 
+                {/* Balance Due (this invoice only) */}
                 <div className="flex justify-between py-1 font-bold text-slate-900 bg-slate-50 px-2 rounded">
                   <span className={data.dueAmount > 0 ? (isSale ? 'text-amber-800' : 'text-rose-800') : 'text-slate-500'}>
                     {t('balanceDue')}:
@@ -202,6 +223,16 @@ export default function InvoiceModal({ isOpen, onClose, data, type = 'sale', com
                     {formatCurrency(data.dueAmount)}
                   </span>
                 </div>
+
+                {/* Total Outstanding (with previous due) */}
+                {hasPreviousDue && (
+                  <div className={`flex justify-between py-2 mt-1 font-extrabold text-sm sm:text-base rounded-lg px-2 border-2 ${isSale ? 'bg-amber-100 border-amber-400 text-amber-900' : 'bg-rose-100 border-rose-400 text-rose-900'}`}>
+                    <span className="leading-tight">
+                      {lang === 'bn' ? 'মোট বকেয়া\n(এই চালান + পূর্ববর্তী)' : 'Total Outstanding\n(incl. prev. due)'}:
+                    </span>
+                    <span className="text-right">{formatCurrency(data.dueAmount + previousDue)}</span>
+                  </div>
+                )}
               </div>
             </div>
 
