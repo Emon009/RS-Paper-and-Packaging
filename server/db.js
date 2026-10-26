@@ -108,6 +108,9 @@ function saveLocalData(data) {
 // ==========================================
 // SUPABASE DIRECT OPERATIONS
 // ==========================================
+// Cache of columns that do not exist in the remote Supabase schema cache
+const missingColumnsCache = new Set();
+
 async function supabaseQuery(table, query = {}) {
   if (!isSupabaseConfigured() || !supabase) return [];
   try {
@@ -126,23 +129,47 @@ async function supabaseQuery(table, query = {}) {
 
 async function supabaseUpsert(table, payload) {
   if (!isSupabaseConfigured() || !supabase) return null;
-  try {
-    const { data, error } = await supabase.from(table).upsert(payload).select().single();
-    if (error) {
-      if (error.message?.includes('column') && payload.photo !== undefined) {
-        const fallbackPayload = { ...payload };
-        delete fallbackPayload.photo;
-        const { data: retryData, error: retryError } = await supabase.from(table).upsert(fallbackPayload).select().single();
-        if (retryError) console.warn(`Supabase ${table} retry upsert error:`, retryError.message);
-        return retryData;
-      }
-      console.warn(`Supabase ${table} upsert error:`, error.message);
+
+  let currentPayload = { ...payload };
+
+  // Strip any columns known to be absent from remote schema cache
+  for (const col of Object.keys(currentPayload)) {
+    if (missingColumnsCache.has(`${table}:${col}`)) {
+      delete currentPayload[col];
     }
-    return data;
-  } catch (err) {
-    console.warn('Supabase upsert error:', err.message);
-    return null;
   }
+
+  const maxAttempts = 5;
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      const { data, error } = await supabase
+        .from(table)
+        .upsert(currentPayload, { onConflict: 'id' })
+        .select()
+        .single();
+
+      if (!error) {
+        return data || currentPayload;
+      }
+
+      // Detect if error is due to an uncreated column in Supabase schema (PGRST204)
+      const colMatch = error.message?.match(/Could not find the '([a-zA-Z0-9_]+)' column/i);
+      if (colMatch && colMatch[1] && currentPayload[colMatch[1]] !== undefined) {
+        const missingCol = colMatch[1];
+        console.warn(`[Supabase Auto-Heal] Table '${table}': column '${missingCol}' not in DB schema. Auto-stripping to guarantee save.`);
+        missingColumnsCache.add(`${table}:${missingCol}`);
+        delete currentPayload[missingCol];
+        continue; // Retry upsert without the missing column
+      }
+
+      console.error(`Supabase ${table} upsert error:`, error.message);
+      return null;
+    } catch (err) {
+      console.error(`Supabase ${table} upsert exception:`, err.message);
+      return null;
+    }
+  }
+  return null;
 }
 
 async function supabaseDelete(table, id) {
@@ -185,14 +212,16 @@ export async function loadData() {
         supplierAddress: p.supplier_address || '', items: p.items || [], subTotal: Number(p.sub_total || 0),
         discount: Number(p.discount || 0), grandTotal: Number(p.grand_total || 0), paidAmount: Number(p.paid_amount || 0),
         dueAmount: Number(p.due_amount || 0), paymentMethod: p.payment_method || 'ক্যাশ', notes: p.notes || '',
-        previousDue: Number(p.previous_due || 0), createdAt: p.created_at
+        previousDue: Number(p.previous_due !== undefined ? p.previous_due : (p.items?.[0]?._previousDue || 0)),
+        createdAt: p.created_at
       })),
       sales: sales.map(s => ({
         id: s.id, date: s.date, customerName: s.customer_name, customerPhone: s.customer_phone || '',
         customerAddress: s.customer_address || '', items: s.items || [], subTotal: Number(s.sub_total || 0),
         discount: Number(s.discount || 0), grandTotal: Number(s.grand_total || 0), receivedAmount: Number(s.received_amount || 0),
         dueAmount: Number(s.due_amount || 0), paymentMethod: s.payment_method || 'ক্যাশ', notes: s.notes || '',
-        previousDue: Number(s.previous_due || 0), createdAt: s.created_at
+        previousDue: Number(s.previous_due !== undefined ? s.previous_due : (s.items?.[0]?._previousDue || 0)),
+        createdAt: s.created_at
       })),
       payments: payments.map(p => ({
         id: p.id, type: p.type, partyName: p.party_name, partyPhone: p.party_phone || '',
@@ -711,14 +740,26 @@ export async function addPurchase(purchaseData) {
   const id = purchaseData.id || `PUR-${Date.now().toString().slice(-6)}`;
   const record = { ...purchaseData, id, createdAt: purchaseData.createdAt || new Date().toISOString() };
 
-  await supabaseUpsert('purchases', {
+  // Embed previousDue in items[0]._previousDue as fallback if column doesn't exist in Supabase
+  const items = (record.items || []).map((it, idx) => {
+    if (idx === 0 && record.previousDue !== undefined) {
+      return { ...it, _previousDue: Number(record.previousDue || 0) };
+    }
+    return it;
+  });
+
+  const upsertRes = await supabaseUpsert('purchases', {
     id: record.id, date: record.date, supplier_name: record.supplierName,
     supplier_phone: record.supplierPhone || '', supplier_address: record.supplierAddress || '',
-    items: record.items || [], sub_total: record.subTotal || 0, discount: record.discount || 0,
+    items, sub_total: record.subTotal || 0, discount: record.discount || 0,
     grand_total: record.grandTotal || 0, paid_amount: record.paidAmount || 0,
     due_amount: record.dueAmount || 0, payment_method: record.paymentMethod || 'ক্যাশ',
     notes: record.notes || '', previous_due: record.previousDue || 0, created_at: record.createdAt
   });
+
+  if (isSupabaseConfigured() && !upsertRes) {
+    throw new Error('Supabase ডাটাবেজে ক্রয় রেকর্ড সংরক্ষণ করা সম্ভব হয়নি। ডাটাবেজ সংযোগ চেক করুন।');
+  }
 
   if (!IS_VERCEL && localFallbackAvailable) {
     const localData = loadLocalData();
@@ -755,14 +796,25 @@ export async function updatePurchase(id, purchaseData) {
     updatedAt: new Date().toISOString()
   };
 
-  await supabaseUpsert('purchases', {
+  const items = (record.items || []).map((it, idx) => {
+    if (idx === 0 && record.previousDue !== undefined) {
+      return { ...it, _previousDue: Number(record.previousDue || 0) };
+    }
+    return it;
+  });
+
+  const upsertRes = await supabaseUpsert('purchases', {
     id: record.id, date: record.date, supplier_name: record.supplierName,
     supplier_phone: record.supplierPhone || '', supplier_address: record.supplierAddress || '',
-    items: record.items || [], sub_total: record.subTotal || 0, discount: record.discount || 0,
+    items, sub_total: record.subTotal || 0, discount: record.discount || 0,
     grand_total: record.grandTotal || 0, paid_amount: record.paidAmount || 0,
     due_amount: record.dueAmount || 0, payment_method: record.paymentMethod || 'ক্যাশ',
-    notes: record.notes || '', created_at: record.createdAt || record.date
+    notes: record.notes || '', previous_due: record.previousDue || 0, created_at: record.createdAt || record.date
   });
+
+  if (isSupabaseConfigured() && !upsertRes) {
+    throw new Error('Supabase ডাটাবেজে ক্রয় চালান আপডেট করা সম্ভব হয়নি');
+  }
 
   if (!IS_VERCEL && localFallbackAvailable) {
     const localData = loadLocalData();
@@ -781,14 +833,26 @@ export async function addSale(saleData) {
   const id = saleData.id || `INV-${Date.now().toString().slice(-6)}`;
   const record = { ...saleData, id, createdAt: saleData.createdAt || new Date().toISOString() };
 
-  await supabaseUpsert('sales', {
+  // Embed previousDue in items[0]._previousDue as fallback if column doesn't exist in Supabase
+  const items = (record.items || []).map((it, idx) => {
+    if (idx === 0 && record.previousDue !== undefined) {
+      return { ...it, _previousDue: Number(record.previousDue || 0) };
+    }
+    return it;
+  });
+
+  const upsertRes = await supabaseUpsert('sales', {
     id: record.id, date: record.date, customer_name: record.customerName,
     customer_phone: record.customerPhone || '', customer_address: record.customerAddress || '',
-    items: record.items || [], sub_total: record.subTotal || 0, discount: record.discount || 0,
+    items, sub_total: record.subTotal || 0, discount: record.discount || 0,
     grand_total: record.grandTotal || 0, received_amount: record.receivedAmount || 0,
     due_amount: record.dueAmount || 0, payment_method: record.paymentMethod || 'ক্যাশ',
     notes: record.notes || '', previous_due: record.previousDue || 0, created_at: record.createdAt
   });
+
+  if (isSupabaseConfigured() && !upsertRes) {
+    throw new Error('Supabase ডাটাবেজে বিক্রয় রেকর্ড সংরক্ষণ করা সম্ভব হয়নি। ডাটাবেজ সংযোগ চেক করুন।');
+  }
 
   if (!IS_VERCEL && localFallbackAvailable) {
     const localData = loadLocalData();
@@ -815,14 +879,25 @@ export async function updateSale(id, saleData) {
     updatedAt: new Date().toISOString()
   };
 
-  await supabaseUpsert('sales', {
+  const items = (record.items || []).map((it, idx) => {
+    if (idx === 0 && record.previousDue !== undefined) {
+      return { ...it, _previousDue: Number(record.previousDue || 0) };
+    }
+    return it;
+  });
+
+  const upsertRes = await supabaseUpsert('sales', {
     id: record.id, date: record.date, customer_name: record.customerName,
     customer_phone: record.customerPhone || '', customer_address: record.customerAddress || '',
-    items: record.items || [], sub_total: record.subTotal || 0, discount: record.discount || 0,
+    items, sub_total: record.subTotal || 0, discount: record.discount || 0,
     grand_total: record.grandTotal || 0, received_amount: record.receivedAmount || 0,
     due_amount: record.dueAmount || 0, payment_method: record.paymentMethod || 'ক্যাশ',
-    notes: record.notes || '', created_at: record.createdAt || record.date
+    notes: record.notes || '', previous_due: record.previousDue || 0, created_at: record.createdAt || record.date
   });
+
+  if (isSupabaseConfigured() && !upsertRes) {
+    throw new Error('Supabase ডাটাবেজে বিক্রয় চালান আপডেট করা সম্ভব হয়নি');
+  }
 
   if (!IS_VERCEL && localFallbackAvailable) {
     const localData = loadLocalData();
