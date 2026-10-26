@@ -270,7 +270,7 @@ export default function InvoiceModal({ isOpen, onClose, data, type = 'sale', com
                     </div>
                     <div className={`flex justify-between items-center py-2.5 px-3 font-extrabold text-sm sm:text-base ${isSale ? 'bg-amber-100 text-amber-900' : 'bg-rose-100 text-rose-900'}`}>
                       <span>{lang === 'bn' ? 'এখন মোট পরিশোধযোগ্য:' : 'Now Total Payable:'}</span>
-                      <span className="text-lg sm:text-xl">{formatCurrency(data.dueAmount + previousDue)}</span>
+                      <span className="text-lg sm:text-xl">{formatCurrency(Number(data.dueAmount || 0) + previousDue)}</span>
                     </div>
                   </div>
                 )}

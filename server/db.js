@@ -317,13 +317,20 @@ export async function getDashboardStats() {
   };
 }
 
+// Helper: case-insensitive & null-safe string equality
+function strEq(a, b) {
+  if (a === undefined || a === null || b === undefined || b === null) return false;
+  return String(a).trim().toLowerCase() === String(b).trim().toLowerCase();
+}
+
 // ==========================================
 // CUSTOMER ACCOUNTS (খাতা)
 // ==========================================
 export async function ensureCustomerExists(name, phone = '', address = '', photo = '') {
-  const trimmedName = name.trim();
+  const trimmedName = (name || '').trim();
+  if (!trimmedName) return null;
   const data = await loadData();
-  let customer = (data.customers || []).find(c => c.name.toLowerCase() === trimmedName.toLowerCase());
+  let customer = (data.customers || []).find(c => strEq(c.name, trimmedName));
 
   if (!customer) {
     customer = {
@@ -365,9 +372,10 @@ export async function ensureCustomerExists(name, phone = '', address = '', photo
 }
 
 export async function ensureSupplierExists(name, phone = '', address = '', photo = '') {
-  const trimmedName = name.trim();
+  const trimmedName = (name || '').trim();
+  if (!trimmedName) return null;
   const data = await loadData();
-  let supplier = (data.suppliers || []).find(s => s.name.toLowerCase() === trimmedName.toLowerCase());
+  let supplier = (data.suppliers || []).find(s => strEq(s.name, trimmedName));
 
   if (!supplier) {
     supplier = {
@@ -412,7 +420,7 @@ export async function updatePartyPhoto(id, type = 'customer', photo = '') {
   const table = type === 'customer' ? 'customers' : 'suppliers';
   const data = await loadData();
   const list = type === 'customer' ? (data.customers || []) : (data.suppliers || []);
-  const party = list.find(p => p.id === id || p.name.toLowerCase() === id.toLowerCase());
+  const party = list.find(p => strEq(p.id, id) || strEq(p.name, id));
   if (!party) return false;
 
   party.photo = (photo || '').trim();
@@ -436,7 +444,7 @@ export async function updatePartyPhoto(id, type = 'customer', photo = '') {
 export async function updateCustomer(idOrName, { name, phone, address, photo }) {
   const data = await loadData();
   const customer = (data.customers || []).find(c =>
-    c.id === idOrName || c.name.toLowerCase() === idOrName.toLowerCase()
+    strEq(c.id, idOrName) || strEq(c.name, idOrName)
   );
   if (!customer) return { success: false, message: 'কাস্টমার পাওয়া যায়নি' };
 
@@ -446,11 +454,11 @@ export async function updateCustomer(idOrName, { name, phone, address, photo }) 
   }
 
   const oldName = customer.name;
-  const nameChanged = oldName.toLowerCase() !== trimmedNewName.toLowerCase();
+  const nameChanged = !strEq(oldName, trimmedNewName);
 
   if (nameChanged) {
     const existing = (data.customers || []).find(c =>
-      c.id !== customer.id && c.name.toLowerCase() === trimmedNewName.toLowerCase()
+      c.id !== customer.id && strEq(c.name, trimmedNewName)
     );
     if (existing) {
       return { success: false, message: 'এই নামের কাস্টমার ইতিমধ্যে রয়েছে' };
@@ -497,12 +505,12 @@ export async function updateCustomer(idOrName, { name, phone, address, photo }) 
     if (!IS_VERCEL && localFallbackAvailable) {
       const localData = loadLocalData();
       (localData.sales || []).forEach(s => {
-        if (s.customerName && s.customerName.toLowerCase() === oldName.toLowerCase()) {
+        if (s.customerName && strEq(s.customerName, oldName)) {
           s.customerName = customer.name;
         }
       });
       (localData.payments || []).forEach(p => {
-        if (p.type === 'customer_collection' && p.partyName && p.partyName.toLowerCase() === oldName.toLowerCase()) {
+        if (p.type === 'customer_collection' && p.partyName && strEq(p.partyName, oldName)) {
           p.partyName = customer.name;
         }
       });
@@ -529,7 +537,7 @@ export async function updateCustomer(idOrName, { name, phone, address, photo }) 
 export async function updateSupplier(idOrName, { name, phone, address, photo }) {
   const data = await loadData();
   const supplier = (data.suppliers || []).find(s =>
-    s.id === idOrName || s.name.toLowerCase() === idOrName.toLowerCase()
+    strEq(s.id, idOrName) || strEq(s.name, idOrName)
   );
   if (!supplier) return { success: false, message: 'সাপ্লায়ার পাওয়া যায়নি' };
 
@@ -539,11 +547,11 @@ export async function updateSupplier(idOrName, { name, phone, address, photo }) 
   }
 
   const oldName = supplier.name;
-  const nameChanged = oldName.toLowerCase() !== trimmedNewName.toLowerCase();
+  const nameChanged = !strEq(oldName, trimmedNewName);
 
   if (nameChanged) {
     const existing = (data.suppliers || []).find(s =>
-      s.id !== supplier.id && s.name.toLowerCase() === trimmedNewName.toLowerCase()
+      s.id !== supplier.id && strEq(s.name, trimmedNewName)
     );
     if (existing) {
       return { success: false, message: 'এই নামের সাপ্লায়ার ইতিমধ্যে রয়েছে' };
@@ -590,12 +598,12 @@ export async function updateSupplier(idOrName, { name, phone, address, photo }) 
     if (!IS_VERCEL && localFallbackAvailable) {
       const localData = loadLocalData();
       (localData.purchases || []).forEach(p => {
-        if (p.supplierName && p.supplierName.toLowerCase() === oldName.toLowerCase()) {
+        if (p.supplierName && strEq(p.supplierName, oldName)) {
           p.supplierName = supplier.name;
         }
       });
       (localData.payments || []).forEach(p => {
-        if (p.type === 'supplier_payment' && p.partyName && p.partyName.toLowerCase() === oldName.toLowerCase()) {
+        if (p.type === 'supplier_payment' && p.partyName && strEq(p.partyName, oldName)) {
           p.partyName = supplier.name;
         }
       });
@@ -627,13 +635,13 @@ export async function getAllCustomerFolders() {
 export async function getCustomerFolderDetails(idOrName) {
   const data = await loadData();
   const customer = (data.customers || []).find(c =>
-    c.id === idOrName || c.name.toLowerCase() === idOrName.toLowerCase()
+    strEq(c.id, idOrName) || strEq(c.name, idOrName)
   );
   if (!customer) return null;
 
-  const sales = (data.sales || []).filter(s => s.customerName.toLowerCase() === customer.name.toLowerCase());
+  const sales = (data.sales || []).filter(s => strEq(s.customerName, customer.name));
   const payments = (data.payments || []).filter(p =>
-    p.type === 'customer_collection' && p.partyName.toLowerCase() === customer.name.toLowerCase()
+    p.type === 'customer_collection' && strEq(p.partyName, customer.name)
   );
 
   let totalSoldAmount = 0, initialReceivedAmount = 0, tissueSoldQty = 0, cuttingSoldQty = 0;
@@ -661,7 +669,11 @@ export async function getCustomerFolderDetails(idOrName) {
       billedAmount: 0, paidAmount: Number(p.amount || 0), dueAmount: 0,
       notes: p.notes || '', items: [], raw: p
     }))
-  ].sort((a, b) => new Date(b.date) - new Date(a.date));
+  ].sort((a, b) => {
+    const timeA = new Date(a.date || 0).getTime() || 0;
+    const timeB = new Date(b.date || 0).getTime() || 0;
+    return timeB - timeA;
+  });
 
   return {
     customer,
@@ -683,13 +695,13 @@ export async function getAllSupplierFolders() {
 export async function getSupplierFolderDetails(idOrName) {
   const data = await loadData();
   const supplier = (data.suppliers || []).find(s =>
-    s.id === idOrName || s.name.toLowerCase() === idOrName.toLowerCase()
+    strEq(s.id, idOrName) || strEq(s.name, idOrName)
   );
   if (!supplier) return null;
 
-  const purchases = (data.purchases || []).filter(p => p.supplierName.toLowerCase() === supplier.name.toLowerCase());
+  const purchases = (data.purchases || []).filter(p => strEq(p.supplierName, supplier.name));
   const payments = (data.payments || []).filter(p =>
-    p.type === 'supplier_payment' && p.partyName.toLowerCase() === supplier.name.toLowerCase()
+    p.type === 'supplier_payment' && strEq(p.partyName, supplier.name)
   );
 
   let totalPurchasedAmount = 0, initialPaidAmount = 0, tissuePurchasedQty = 0, cuttingPurchasedQty = 0;
@@ -717,7 +729,11 @@ export async function getSupplierFolderDetails(idOrName) {
       billedAmount: 0, paidAmount: Number(p.amount || 0), dueAmount: 0,
       notes: p.notes || '', items: [], raw: p
     }))
-  ].sort((a, b) => new Date(b.date) - new Date(a.date));
+  ].sort((a, b) => {
+    const timeA = new Date(a.date || 0).getTime() || 0;
+    const timeB = new Date(b.date || 0).getTime() || 0;
+    return timeB - timeA;
+  });
 
   return {
     supplier,
@@ -924,12 +940,22 @@ export async function addPayment(paymentData) {
   const id = paymentData.id || `PAY-${Date.now().toString().slice(-6)}`;
   const record = { ...paymentData, id, createdAt: paymentData.createdAt || new Date().toISOString() };
 
-  await supabaseUpsert('payments', {
+  if (record.type === 'customer_collection' && record.partyName) {
+    await ensureCustomerExists(record.partyName, record.partyPhone);
+  } else if (record.type === 'supplier_payment' && record.partyName) {
+    await ensureSupplierExists(record.partyName, record.partyPhone);
+  }
+
+  const upsertRes = await supabaseUpsert('payments', {
     id: record.id, type: record.type, party_name: record.partyName,
     party_phone: record.partyPhone || '', amount: record.amount || 0, date: record.date,
     payment_method: record.paymentMethod || 'ক্যাশ', notes: record.notes || '',
     created_at: record.createdAt
   });
+
+  if (isSupabaseConfigured() && !upsertRes) {
+    throw new Error('Supabase ডাটাবেজে পেমেন্ট রেকর্ড সংরক্ষণ করা সম্ভব হয়নি। ডাটাবেজ সংযোগ চেক করুন।');
+  }
 
   if (!IS_VERCEL && localFallbackAvailable) {
     const localData = loadLocalData();
@@ -952,12 +978,12 @@ export async function deletePayment(id) {
 
 export async function deleteCustomer(id) {
   const data = await loadData();
-  const customer = (data.customers || []).find(c => c.id === id || c.name.toLowerCase() === id.toLowerCase());
+  const customer = (data.customers || []).find(c => strEq(c.id, id) || strEq(c.name, id));
   const targetId = customer ? customer.id : id;
   const ok = await supabaseDelete('customers', targetId);
   if (!IS_VERCEL && localFallbackAvailable) {
     const localData = loadLocalData();
-    const idx = (localData.customers || []).findIndex(c => c.id === targetId || (customer && c.name.toLowerCase() === customer.name.toLowerCase()));
+    const idx = (localData.customers || []).findIndex(c => strEq(c.id, targetId) || (customer && strEq(c.name, customer.name)));
     if (idx !== -1) { localData.customers.splice(idx, 1); saveLocalData(localData); }
   }
   return ok || Boolean(customer);
@@ -965,12 +991,12 @@ export async function deleteCustomer(id) {
 
 export async function deleteSupplier(id) {
   const data = await loadData();
-  const supplier = (data.suppliers || []).find(s => s.id === id || s.name.toLowerCase() === id.toLowerCase());
+  const supplier = (data.suppliers || []).find(s => strEq(s.id, id) || strEq(s.name, id));
   const targetId = supplier ? supplier.id : id;
   const ok = await supabaseDelete('suppliers', targetId);
   if (!IS_VERCEL && localFallbackAvailable) {
     const localData = loadLocalData();
-    const idx = (localData.suppliers || []).findIndex(s => s.id === targetId || (supplier && s.name.toLowerCase() === supplier.name.toLowerCase()));
+    const idx = (localData.suppliers || []).findIndex(s => strEq(s.id, targetId) || (supplier && strEq(s.name, supplier.name)));
     if (idx !== -1) { localData.suppliers.splice(idx, 1); saveLocalData(localData); }
   }
   return ok || Boolean(supplier);

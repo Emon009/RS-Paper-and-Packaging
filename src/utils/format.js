@@ -17,12 +17,13 @@ export function formatDate(dateStr) {
   if (!dateStr) return '';
   try {
     const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return String(dateStr);
     return d.toLocaleDateString('bn-BD', {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
     });
   } catch (e) {
-    return dateStr;
+    return String(dateStr);
   }
 }

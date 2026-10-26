@@ -31,8 +31,12 @@ export default function TransactionHistory({
     combined.push(...sales.map(s => ({ ...s, txnType: 'sale' })));
   }
 
-  // Sort by date newest first
-  combined.sort((a, b) => new Date(b.date || b.createdAt) - new Date(a.date || a.createdAt));
+  // Sort by date newest first (safe against invalid date NaNs)
+  combined.sort((a, b) => {
+    const timeA = new Date(a.date || a.createdAt || 0).getTime() || 0;
+    const timeB = new Date(b.date || b.createdAt || 0).getTime() || 0;
+    return timeB - timeA;
+  });
 
   const filtered = combined.filter(item => {
     const name = (item.supplierName || item.customerName || '').toLowerCase();

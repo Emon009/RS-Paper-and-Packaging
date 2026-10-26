@@ -397,11 +397,20 @@ const handleSupplierDelete = async (req, res) => {
 app.delete('/api/suppliers/:id', handleSupplierDelete);
 app.post('/api/suppliers/:id/delete', handleSupplierDelete);
 
+// Safe URI component decoder that never throws on malformed strings
+function safeDecodeUri(str) {
+  try {
+    return decodeURIComponent(str || '').trim();
+  } catch {
+    return String(str || '').trim();
+  }
+}
+
 // ── Party Previous Due Lookup ──
 // Used by SaleModal / PurchaseModal to show carry-forward balance before new invoice
 app.get('/api/party-due/customer/:name', async (req, res) => {
   try {
-    const name = decodeURIComponent(req.params.name).trim();
+    const name = safeDecodeUri(req.params.name);
     if (!name) return res.json({ success: true, netDue: 0 });
     const folder = await getCustomerFolderDetails(name);
     if (!folder) return res.json({ success: true, netDue: 0, isNew: true });
@@ -413,7 +422,7 @@ app.get('/api/party-due/customer/:name', async (req, res) => {
 
 app.get('/api/party-due/supplier/:name', async (req, res) => {
   try {
-    const name = decodeURIComponent(req.params.name).trim();
+    const name = safeDecodeUri(req.params.name);
     if (!name) return res.json({ success: true, netDue: 0 });
     const folder = await getSupplierFolderDetails(name);
     if (!folder) return res.json({ success: true, netDue: 0, isNew: true });
@@ -441,8 +450,8 @@ app.post('/api/purchases', async (req, res) => {
       return res.status(400).json({ success: false, message: 'সাপ্লায়ার নাম, তারিখ এবং পণ্যের বিবরণ আবশ্যক!' });
 
     const calculatedItems = items.map(item => {
-      const qty = parseFloat(item.quantity) || 0;
-      const rate = parseFloat(item.rate) || 0;
+      const qty = Math.max(0, parseFloat(item.quantity) || 0);
+      const rate = Math.max(0, parseFloat(item.rate) || 0);
       return {
         productType: item.productType,
         name: item.name || (item.productType === 'tissue' ? 'Tissue Paper' : 'Cutting / News Paper'),
@@ -450,9 +459,9 @@ app.post('/api/purchases', async (req, res) => {
       };
     });
     const subTotal = calculatedItems.reduce((acc, curr) => acc + curr.total, 0);
-    const disc = parseFloat(discount) || 0;
+    const disc = Math.max(0, parseFloat(discount) || 0);
     const grandTotal = Math.max(0, subTotal - disc);
-    const paid = parseFloat(paidAmount) || 0;
+    const paid = Math.max(0, parseFloat(paidAmount) || 0);
     const dueAmount = Math.max(0, grandTotal - paid);
     const prevDue = Math.max(0, parseFloat(previousDue) || 0);
 
@@ -475,8 +484,8 @@ app.put('/api/purchases/:id', async (req, res) => {
       return res.status(400).json({ success: false, message: 'সাপ্লায়ার নাম, তারিখ এবং পণ্যের বিবরণ আবশ্যক!' });
 
     const calculatedItems = items.map(item => {
-      const qty = parseFloat(item.quantity) || 0;
-      const rate = parseFloat(item.rate) || 0;
+      const qty = Math.max(0, parseFloat(item.quantity) || 0);
+      const rate = Math.max(0, parseFloat(item.rate) || 0);
       return {
         productType: item.productType,
         name: item.name || (item.productType === 'tissue' ? 'Tissue Paper' : 'Cutting / News Paper'),
@@ -484,9 +493,9 @@ app.put('/api/purchases/:id', async (req, res) => {
       };
     });
     const subTotal = calculatedItems.reduce((acc, curr) => acc + curr.total, 0);
-    const disc = parseFloat(discount) || 0;
+    const disc = Math.max(0, parseFloat(discount) || 0);
     const grandTotal = Math.max(0, subTotal - disc);
-    const paid = parseFloat(paidAmount) || 0;
+    const paid = Math.max(0, parseFloat(paidAmount) || 0);
     const dueAmount = Math.max(0, grandTotal - paid);
 
     const updated = await updatePurchase(req.params.id, {
@@ -508,8 +517,8 @@ app.post('/api/purchases/:id/update', async (req, res) => {
       return res.status(400).json({ success: false, message: 'সাপ্লায়ার নাম, তারিখ এবং পণ্যের বিবরণ আবশ্যক!' });
 
     const calculatedItems = items.map(item => {
-      const qty = parseFloat(item.quantity) || 0;
-      const rate = parseFloat(item.rate) || 0;
+      const qty = Math.max(0, parseFloat(item.quantity) || 0);
+      const rate = Math.max(0, parseFloat(item.rate) || 0);
       return {
         productType: item.productType,
         name: item.name || (item.productType === 'tissue' ? 'Tissue Paper' : 'Cutting / News Paper'),
@@ -517,9 +526,9 @@ app.post('/api/purchases/:id/update', async (req, res) => {
       };
     });
     const subTotal = calculatedItems.reduce((acc, curr) => acc + curr.total, 0);
-    const disc = parseFloat(discount) || 0;
+    const disc = Math.max(0, parseFloat(discount) || 0);
     const grandTotal = Math.max(0, subTotal - disc);
-    const paid = parseFloat(paidAmount) || 0;
+    const paid = Math.max(0, parseFloat(paidAmount) || 0);
     const dueAmount = Math.max(0, grandTotal - paid);
 
     const updated = await updatePurchase(req.params.id, {
@@ -562,8 +571,8 @@ app.post('/api/sales', async (req, res) => {
       return res.status(400).json({ success: false, message: 'কাস্টমার নাম, তারিখ এবং পণ্যের বিবরণ আবশ্যক!' });
 
     const calculatedItems = items.map(item => {
-      const qty = parseFloat(item.quantity) || 0;
-      const rate = parseFloat(item.rate) || 0;
+      const qty = Math.max(0, parseFloat(item.quantity) || 0);
+      const rate = Math.max(0, parseFloat(item.rate) || 0);
       return {
         productType: item.productType,
         name: item.name || (item.productType === 'tissue' ? 'Tissue Paper' : 'Cutting / News Paper'),
@@ -571,9 +580,9 @@ app.post('/api/sales', async (req, res) => {
       };
     });
     const subTotal = calculatedItems.reduce((acc, curr) => acc + curr.total, 0);
-    const disc = parseFloat(discount) || 0;
+    const disc = Math.max(0, parseFloat(discount) || 0);
     const grandTotal = Math.max(0, subTotal - disc);
-    const received = parseFloat(receivedAmount) || 0;
+    const received = Math.max(0, parseFloat(receivedAmount) || 0);
     const dueAmount = Math.max(0, grandTotal - received);
     const prevDue = Math.max(0, parseFloat(previousDue) || 0);
 
@@ -596,8 +605,8 @@ app.put('/api/sales/:id', async (req, res) => {
       return res.status(400).json({ success: false, message: 'কাস্টমার নাম, তারিখ এবং পণ্যের বিবরণ আবশ্যক!' });
 
     const calculatedItems = items.map(item => {
-      const qty = parseFloat(item.quantity) || 0;
-      const rate = parseFloat(item.rate) || 0;
+      const qty = Math.max(0, parseFloat(item.quantity) || 0);
+      const rate = Math.max(0, parseFloat(item.rate) || 0);
       return {
         productType: item.productType,
         name: item.name || (item.productType === 'tissue' ? 'Tissue Paper' : 'Cutting / News Paper'),
@@ -605,9 +614,9 @@ app.put('/api/sales/:id', async (req, res) => {
       };
     });
     const subTotal = calculatedItems.reduce((acc, curr) => acc + curr.total, 0);
-    const disc = parseFloat(discount) || 0;
+    const disc = Math.max(0, parseFloat(discount) || 0);
     const grandTotal = Math.max(0, subTotal - disc);
-    const received = parseFloat(receivedAmount) || 0;
+    const received = Math.max(0, parseFloat(receivedAmount) || 0);
     const dueAmount = Math.max(0, grandTotal - received);
 
     const updated = await updateSale(req.params.id, {
@@ -629,8 +638,8 @@ app.post('/api/sales/:id/update', async (req, res) => {
       return res.status(400).json({ success: false, message: 'কাস্টমার নাম, তারিখ এবং পণ্যের বিবরণ আবশ্যক!' });
 
     const calculatedItems = items.map(item => {
-      const qty = parseFloat(item.quantity) || 0;
-      const rate = parseFloat(item.rate) || 0;
+      const qty = Math.max(0, parseFloat(item.quantity) || 0);
+      const rate = Math.max(0, parseFloat(item.rate) || 0);
       return {
         productType: item.productType,
         name: item.name || (item.productType === 'tissue' ? 'Tissue Paper' : 'Cutting / News Paper'),
@@ -638,9 +647,9 @@ app.post('/api/sales/:id/update', async (req, res) => {
       };
     });
     const subTotal = calculatedItems.reduce((acc, curr) => acc + curr.total, 0);
-    const disc = parseFloat(discount) || 0;
+    const disc = Math.max(0, parseFloat(discount) || 0);
     const grandTotal = Math.max(0, subTotal - disc);
-    const received = parseFloat(receivedAmount) || 0;
+    const received = Math.max(0, parseFloat(receivedAmount) || 0);
     const dueAmount = Math.max(0, grandTotal - received);
 
     const updated = await updateSale(req.params.id, {
