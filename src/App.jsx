@@ -179,6 +179,13 @@ export default function App() {
     });
   };
 
+  const handlePaymentSuccess = (newPayment) => {
+    fetchData();
+    if (newPayment) {
+      setInvoiceModal({ isOpen: true, data: newPayment, type: 'payment' });
+    }
+  };
+
   const handleOpenPartyAccount = (partyInfo, type = 'customer') => {
     setPartyAccountModal({
       isOpen: true,
@@ -402,7 +409,7 @@ export default function App() {
       <PaymentModal
         isOpen={paymentModal.isOpen}
         onClose={() => setPaymentModal({ isOpen: false, data: {} })}
-        onSuccess={fetchData}
+        onSuccess={handlePaymentSuccess}
         initialData={paymentModal.data}
       />
 

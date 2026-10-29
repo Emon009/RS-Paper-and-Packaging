@@ -560,7 +560,30 @@ export default function PartyAccountModal({
                                   </button>
                                 )}
                                 {entry._entryType === 'payment' && (
-                                  <span className="text-[10px] text-emerald-600 font-semibold">✅ OK</span>
+                                  <button
+                                    onClick={() => {
+                                      const receiptData = {
+                                        id: entry.id,
+                                        date: entry.date || entry._date,
+                                        type: entry.type || (isCustomer ? 'customer_collection' : 'supplier_payment'),
+                                        partyName: entry.partyName || profile?.name || '',
+                                        partyPhone: entry.partyPhone || profile?.phone || '',
+                                        partyAddress: profile?.address || '',
+                                        amount: entry.amount || entry._paidAmount || 0,
+                                        paymentMethod: entry.paymentMethod || 'ক্যাশ',
+                                        notes: entry.notes || '',
+                                        createdAt: entry.createdAt || entry._date
+                                      };
+                                      if (onViewInvoice) {
+                                        onViewInvoice(receiptData, 'payment');
+                                      }
+                                    }}
+                                    className="inline-flex items-center gap-1 text-emerald-700 hover:text-emerald-900 bg-emerald-50 hover:bg-emerald-100 px-2 py-0.5 rounded border border-emerald-200 text-[11px] font-semibold transition cursor-pointer"
+                                    title={lang === 'bn' ? 'রশিদ দেখুন ও প্রিন্ট করুন' : 'View & Print Receipt'}
+                                  >
+                                    <FileText className="w-3 h-3 text-emerald-600" />
+                                    <span>{lang === 'bn' ? 'রশিদ' : 'Receipt'}</span>
+                                  </button>
                                 )}
                               </div>
                             </td>

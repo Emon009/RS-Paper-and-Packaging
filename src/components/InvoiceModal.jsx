@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Printer, Building2, CheckCircle2, Pencil, AlertTriangle, TrendingUp } from 'lucide-react';
+import { X, Printer, Building2, CheckCircle2, Pencil, AlertTriangle, TrendingUp, Banknote } from 'lucide-react';
 import { formatCurrency, formatQty, formatDate } from '../utils/format';
 import { useLanguage } from '../i18n/LanguageContext';
 
@@ -8,17 +8,33 @@ export default function InvoiceModal({ isOpen, onClose, data, type = 'sale', com
   if (!isOpen || !data) return null;
 
   const isSale = type === 'sale';
-  const partyTitle = isSale ? t('customerName') : t('supplierName');
-  const partyName = isSale ? data.customerName : data.supplierName;
-  const partyPhone = isSale ? data.customerPhone : data.supplierPhone;
-  const invoiceTitle = isSale
-    ? (lang === 'bn' ? 'ক্যাশ মেমো / বিক্রয় চালান' : 'CASH MEMO / SALE INVOICE')
-    : (lang === 'bn' ? 'ক্রয় চালান ও ভাউচার' : 'PURCHASE VOUCHER');
-  const paidField = isSale ? data.receivedAmount : data.paidAmount;
+  const isPurchase = type === 'purchase';
+  const isPayment = type === 'payment';
 
-  // Previous due carry-forward (stored in invoice data)
+  // For payment: determine whether it's collection from customer or payment to supplier
+  const isCustomerPayment = isPayment && (data.type === 'customer_collection' || !data.type);
+
+  const partyTitle = isPayment
+    ? (isCustomerPayment ? (lang === 'bn' ? 'টাকা প্রদানকারী কাস্টমার' : 'Customer') : (lang === 'bn' ? 'টাকা প্রাপক সাপ্লায়ার' : 'Supplier'))
+    : (isSale ? t('customerName') : t('supplierName'));
+
+  const partyName = data.partyName || (isSale ? data.customerName : data.supplierName) || '';
+  const partyPhone = data.partyPhone || (isSale ? data.customerPhone : data.supplierPhone) || '';
+  const partyAddress = data.partyAddress || data.customerAddress || data.supplierAddress || '';
+
+  const invoiceTitle = isPayment
+    ? (isCustomerPayment
+        ? (lang === 'bn' ? 'মানি রিসিট / টাকা জমার রশিদ' : 'MONEY RECEIPT')
+        : (lang === 'bn' ? 'পেমেন্ট ভাউচার / দেনা পরিশোধ রশিদ' : 'PAYMENT VOUCHER'))
+    : (isSale
+        ? (lang === 'bn' ? 'ক্যাশ মেমো / বিক্রয় চালান' : 'CASH MEMO / SALE INVOICE')
+        : (lang === 'bn' ? 'ক্রয় চালান ও ভাউচার' : 'PURCHASE VOUCHER'));
+
+  const paidField = isPayment ? data.amount : (isSale ? data.receivedAmount : data.paidAmount);
+
+  // Previous due carry-forward (stored in invoice data for sale/purchase)
   const previousDue = Number(data.previousDue || 0);
-  const hasPreviousDue = previousDue > 0;
+  const hasPreviousDue = !isPayment && previousDue > 0;
 
   const handlePrint = () => {
     window.print();
@@ -31,13 +47,17 @@ export default function InvoiceModal({ isOpen, onClose, data, type = 'sale', com
         {/* Modal Controls (No print) */}
         <div className="bg-slate-800 text-white px-4 sm:px-6 py-3 sm:py-3.5 flex items-center justify-between no-print shrink-0">
           <span className="text-xs sm:text-sm font-semibold flex items-center gap-1.5 sm:gap-2 truncate">
-            <span>{lang === 'bn' ? 'ইনভয়েস প্রিভিউ ও প্রিন্ট' : 'Invoice Preview & Print'}</span>
+            <span>
+              {isPayment
+                ? (lang === 'bn' ? 'মানি রিসিট প্রিভিউ ও প্রিন্ট' : 'Receipt Preview & Print')
+                : (lang === 'bn' ? 'ইনভয়েস প্রিভিউ ও প্রিন্ট' : 'Invoice Preview & Print')}
+            </span>
             <span className="text-[11px] bg-slate-700 px-2 py-0.5 rounded text-slate-300">
               {data.id}
             </span>
           </span>
           <div className="flex items-center gap-2 shrink-0">
-            {onEdit && (
+            {onEdit && !isPayment && (
               <button
                 onClick={() => {
                   onClose();
@@ -52,14 +72,14 @@ export default function InvoiceModal({ isOpen, onClose, data, type = 'sale', com
             )}
             <button
               onClick={handlePrint}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg shadow transition active:scale-95"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg shadow transition active:scale-95 cursor-pointer"
             >
               <Printer className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              <span>{t('printInvoice')}</span>
+              <span>{isPayment ? (lang === 'bn' ? 'রশিদ প্রিন্ট' : 'Print Receipt') : t('printInvoice')}</span>
             </button>
             <button
               onClick={onClose}
-              className="p-1 rounded-lg text-slate-300 hover:text-white hover:bg-slate-700 transition"
+              className="p-1 rounded-lg text-slate-300 hover:text-white hover:bg-slate-700 transition cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
@@ -93,12 +113,16 @@ export default function InvoiceModal({ isOpen, onClose, data, type = 'sale', com
                 </div>
 
                 <div className="sm:text-right pt-2 sm:pt-0 border-t sm:border-0 border-slate-100">
-                  <span className="inline-block px-2.5 sm:px-3 py-1 bg-slate-900 text-white text-[10px] sm:text-xs font-bold rounded uppercase tracking-wider mb-1 sm:mb-2">
+                  <span className={`inline-block px-2.5 sm:px-3 py-1 text-white text-[10px] sm:text-xs font-bold rounded uppercase tracking-wider mb-1 sm:mb-2 ${
+                    isPayment 
+                      ? (isCustomerPayment ? 'bg-emerald-800' : 'bg-rose-800')
+                      : 'bg-slate-900'
+                  }`}>
                     {invoiceTitle}
                   </span>
                   <div className="text-[11px] sm:text-xs text-slate-600 space-y-0.5">
-                    <p><strong>{t('invoiceNo')}:</strong> {data.id}</p>
-                    <p><strong>{t('invoiceDate')}:</strong> {formatDate(data.date)}</p>
+                    <p><strong>{isPayment ? (lang === 'bn' ? 'রশিদ নং:' : 'Receipt No:') : t('invoiceNo') + ':'}</strong> {data.id}</p>
+                    <p><strong>{isPayment ? (lang === 'bn' ? 'তারিখ:' : 'Date:') : t('invoiceDate') + ':'}</strong> {formatDate(data.date || data.createdAt)}</p>
                   </div>
                 </div>
               </div>
@@ -109,14 +133,16 @@ export default function InvoiceModal({ isOpen, onClose, data, type = 'sale', com
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
                   <span className="text-[10px] sm:text-xs text-slate-400 font-bold uppercase tracking-wider block mb-0.5">
-                    {t('billTo')}
+                    {isPayment
+                      ? (isCustomerPayment ? (lang === 'bn' ? 'টাকা প্রদানকারী' : 'Received From') : (lang === 'bn' ? 'টাকা প্রাপক' : 'Paid To'))
+                      : t('billTo')}
                   </span>
                   <div className="text-base sm:text-lg font-bold text-slate-900">{partyName}</div>
                   {partyPhone && (
                     <div className="text-xs text-slate-600 mt-0.5">{t('mobile')}: {partyPhone}</div>
                   )}
-                  {(data.customerAddress || data.supplierAddress) && (
-                    <div className="text-xs text-slate-500 mt-0.5">{data.customerAddress || data.supplierAddress}</div>
+                  {partyAddress && (
+                    <div className="text-xs text-slate-500 mt-0.5">{partyAddress}</div>
                   )}
                 </div>
 
@@ -131,157 +157,255 @@ export default function InvoiceModal({ isOpen, onClose, data, type = 'sale', com
               </div>
             </div>
 
-            {/* ── Previous Due Carry-Forward Notice Banner ── */}
-            {hasPreviousDue && (
-              <div className={`mb-4 sm:mb-6 rounded-xl border-2 overflow-hidden ${isSale ? 'border-amber-400' : 'border-rose-400'}`}>
-                {/* Banner Header */}
-                <div className={`flex items-center gap-2 px-3 sm:px-4 py-2 ${isSale ? 'bg-amber-500' : 'bg-rose-500'}`}>
-                  <AlertTriangle className="w-4 h-4 text-white shrink-0" />
-                  <span className="text-white text-xs font-bold uppercase tracking-wider">
+            {/* ── Money Receipt Body (When type === 'payment') ── */}
+            {isPayment ? (
+              <div className="space-y-5 mb-6">
+                {/* Highlighted Amount Card */}
+                <div className={`p-4 sm:p-5 rounded-2xl border-2 ${
+                  isCustomerPayment ? 'bg-emerald-50/80 border-emerald-300' : 'bg-rose-50/80 border-rose-300'
+                } flex flex-col sm:flex-row sm:items-center justify-between gap-3`}>
+                  <div>
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">
+                      {isCustomerPayment ? (lang === 'bn' ? 'গৃহীত টাকার পরিমাণ' : 'Amount Received') : (lang === 'bn' ? 'পরিশোধিত টাকার পরিমাণ' : 'Amount Paid')}
+                    </span>
+                    <div className={`text-2xl sm:text-3xl font-black mt-1 ${isCustomerPayment ? 'text-emerald-800' : 'text-rose-800'}`}>
+                      {formatCurrency(data.amount)}
+                    </div>
+                    <div className="inline-flex items-center gap-1.5 mt-2 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-white border border-slate-200 text-slate-700 shadow-2xs">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>{lang === 'bn' ? 'সফলভাবে ক্যাশ/পেমেন্ট হিসাবভুক্ত হয়েছে' : 'Payment Successfully Recorded'}</span>
+                    </div>
+                  </div>
+
+                  <div className="text-left sm:text-right space-y-1 text-xs text-slate-600 border-t sm:border-0 pt-2 sm:pt-0 border-slate-200">
+                    <p><strong className="text-slate-800">{lang === 'bn' ? 'পরিশোধের মাধ্যম:' : 'Payment Mode:'}</strong> <span className="font-semibold text-slate-900">{data.paymentMethod || t('cash')}</span></p>
+                    <p><strong className="text-slate-800">{lang === 'bn' ? 'লেনদেনের ধরন:' : 'Transaction Type:'}</strong> {isCustomerPayment ? (lang === 'bn' ? 'কাস্টমার বকেয়া আদায়' : 'Customer Collection') : (lang === 'bn' ? 'সাপ্লায়ার দেনা পরিশোধ' : 'Supplier Payment')}</p>
+                    {data.notes && (
+                      <p><strong className="text-slate-800">{t('notes')}:</strong> <span className="text-slate-700">{data.notes}</span></p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Receipt Table */}
+                <div className="overflow-x-auto touch-scroll">
+                  <table className="w-full text-left border-collapse text-xs sm:text-sm">
+                    <thead>
+                      <tr className="border-b-2 border-slate-900 bg-slate-100 text-slate-900 font-bold">
+                        <th className="py-2.5 px-3 w-12 text-center">{t('sl')}</th>
+                        <th className="py-2.5 px-3">{lang === 'bn' ? 'হিসাবের বিবরণ' : 'Description'}</th>
+                        <th className="py-2.5 px-3 text-center">{lang === 'bn' ? 'পরিশোধের মাধ্যম' : 'Payment Method'}</th>
+                        <th className="py-2.5 px-3 text-right">{t('amount')}</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200">
+                      <tr>
+                        <td className="py-3.5 px-3 text-center text-slate-500 font-medium">১</td>
+                        <td className="py-3.5 px-3">
+                          <strong className="text-slate-900 block text-sm">
+                            {isCustomerPayment 
+                              ? (lang === 'bn' ? `${partyName}-এর বকেয়া হিসাব বাবদ জমা গ্রহণ` : `Collection against outstanding dues from ${partyName}`)
+                              : (lang === 'bn' ? `${partyName}-এর পাওনা হিসাব বাবদ পরিশোধ` : `Payment against dues to ${partyName}`)}
+                          </strong>
+                          {data.notes && (
+                            <span className="text-xs text-slate-500 mt-1 block">
+                              {lang === 'bn' ? 'রেফারেন্স / নোট: ' : 'Reference / Note: '}{data.notes}
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3.5 px-3 text-center font-medium text-slate-700">
+                          <span className="inline-block px-2.5 py-0.5 bg-slate-100 border border-slate-200 text-slate-800 text-xs font-semibold rounded">
+                            {data.paymentMethod || t('cash')}
+                          </span>
+                        </td>
+                        <td className={`py-3.5 px-3 text-right font-black text-base sm:text-lg ${isCustomerPayment ? 'text-emerald-700' : 'text-rose-700'}`}>
+                          {formatCurrency(data.amount)}
+                        </td>
+                      </tr>
+                    </tbody>
+                    <tfoot>
+                      <tr className="border-t-2 border-slate-900 font-bold bg-slate-50 text-sm">
+                        <td colSpan="3" className="py-3 px-3 text-right text-slate-800">
+                          {lang === 'bn' ? 'মোট গৃহীত টাকা (Net Amount):' : 'Total Net Amount:'}
+                        </td>
+                        <td className="py-3 px-3 text-right font-black text-slate-900 text-base sm:text-lg">
+                          {formatCurrency(data.amount)}
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+
+                {/* Official Computerized Note */}
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-600 flex items-center justify-between flex-wrap gap-2">
+                  <p className="italic text-[11px] text-slate-500">
                     {lang === 'bn'
-                      ? '⚠ পূর্ববর্তী বকেয়ার বিবরণ'
-                      : '⚠ Previous Outstanding Balance Notice'}
+                      ? 'ধন্যবাদান্তে গৃহীত। এটি আর.এস. পেপার এন্ড প্যাকেজিং-এর অফিশিয়াল কম্পিউটারাইজড রশিদ।'
+                      : 'Received with thanks. This is an official computerized receipt from R.S. Paper and Packaging.'}
+                  </p>
+                  <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                    ✔ {lang === 'bn' ? 'পরিশোধিত' : 'Paid'}
                   </span>
                 </div>
-                {/* Banner Body */}
-                <div className={`px-3 sm:px-4 py-3 ${isSale ? 'bg-amber-50' : 'bg-rose-50'}`}>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className={`text-xs font-semibold ${isSale ? 'text-amber-900' : 'text-rose-900'}`}>
+              </div>
+            ) : (
+              <>
+                {/* ── Previous Due Carry-Forward Notice Banner (For Sale / Purchase) ── */}
+                {hasPreviousDue && (
+                  <div className={`mb-4 sm:mb-6 rounded-xl border-2 overflow-hidden ${isSale ? 'border-amber-400' : 'border-rose-400'}`}>
+                    {/* Banner Header */}
+                    <div className={`flex items-center gap-2 px-3 sm:px-4 py-2 ${isSale ? 'bg-amber-500' : 'bg-rose-500'}`}>
+                      <AlertTriangle className="w-4 h-4 text-white shrink-0" />
+                      <span className="text-white text-xs font-bold uppercase tracking-wider">
                         {lang === 'bn'
-                          ? `${partyName}-এর এই চালানের পূর্বে মোট বকেয়া ছিল:`
-                          : `${partyName}'s outstanding balance before this invoice:`}
-                      </p>
-                      <p className={`text-[11px] mt-0.5 ${isSale ? 'text-amber-700' : 'text-rose-700'}`}>
-                        {lang === 'bn'
-                          ? 'এই পূর্ববর্তী বকেয়া নিচের হিসাবে যোগ করা হয়েছে'
-                          : 'This previous due has been added in the calculation below'}
-                      </p>
-                    </div>
-                    <div className="text-right shrink-0 ml-3">
-                      <span className={`text-xl sm:text-2xl font-black ${isSale ? 'text-amber-800' : 'text-rose-800'}`}>
-                        {new Intl.NumberFormat('bn-BD', { style: 'currency', currency: 'BDT', maximumFractionDigits: 0 }).format(previousDue).replace('BDT', '৳')}
+                          ? '⚠ পূর্ববর্তী বকেয়ার বিবরণ'
+                          : '⚠ Previous Outstanding Balance Notice'}
                       </span>
                     </div>
+                    {/* Banner Body */}
+                    <div className={`px-3 sm:px-4 py-3 ${isSale ? 'bg-amber-50' : 'bg-rose-50'}`}>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className={`text-xs font-semibold ${isSale ? 'text-amber-900' : 'text-rose-900'}`}>
+                            {lang === 'bn'
+                              ? `${partyName}-এর এই চালানের পূর্বে মোট বকেয়া ছিল:`
+                              : `${partyName}'s outstanding balance before this invoice:`}
+                          </p>
+                          <p className={`text-[11px] mt-0.5 ${isSale ? 'text-amber-700' : 'text-rose-700'}`}>
+                            {lang === 'bn'
+                              ? 'এই পূর্ববর্তী বকেয়া নিচের হিসাবে যোগ করা হয়েছে'
+                              : 'This previous due has been added in the calculation below'}
+                          </p>
+                        </div>
+                        <div className="text-right shrink-0 ml-3">
+                          <span className={`text-xl sm:text-2xl font-black ${isSale ? 'text-amber-800' : 'text-rose-800'}`}>
+                            {new Intl.NumberFormat('bn-BD', { style: 'currency', currency: 'BDT', maximumFractionDigits: 0 }).format(previousDue).replace('BDT', '৳')}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-            )}
+                )}
 
-            {/* Product Table (Horizontal scroll wrapper for mobile) */}
-            <div className="overflow-x-auto touch-scroll mb-4 sm:mb-6">
-              <table className="w-full text-left border-collapse text-xs sm:text-sm min-w-[500px]">
-                <thead>
-                  <tr className="border-b-2 border-slate-900 bg-slate-100 text-slate-900 font-bold">
-                    <th className="py-2.5 px-3 w-12 text-center">{t('sl')}</th>
-                    <th className="py-2.5 px-3">{t('description')}</th>
-                    <th className="py-2.5 px-3 text-right">{t('qty')}</th>
-                    <th className="py-2.5 px-3 text-right">{t('ratePerKg')}</th>
-                    <th className="py-2.5 px-3 text-right">{t('totalAmount')}</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-200">
-                  {(data.items || []).map((item, index) => (
-                    <tr key={index}>
-                      <td className="py-2.5 px-3 text-center text-slate-500">{index + 1}</td>
-                      <td className="py-2.5 px-3">
-                        <strong className="text-slate-900">{item.name}</strong>
-                        <span className="block text-[11px] text-slate-400">
-                          {item.productType === 'tissue' ? t('tissuePaper') : t('cuttingNewsPaper')}
+                {/* Product Table (Horizontal scroll wrapper for mobile) */}
+                <div className="overflow-x-auto touch-scroll mb-4 sm:mb-6">
+                  <table className="w-full text-left border-collapse text-xs sm:text-sm min-w-[500px]">
+                    <thead>
+                      <tr className="border-b-2 border-slate-900 bg-slate-100 text-slate-900 font-bold">
+                        <th className="py-2.5 px-3 w-12 text-center">{t('sl')}</th>
+                        <th className="py-2.5 px-3">{t('description')}</th>
+                        <th className="py-2.5 px-3 text-right">{t('qty')}</th>
+                        <th className="py-2.5 px-3 text-right">{t('ratePerKg')}</th>
+                        <th className="py-2.5 px-3 text-right">{t('totalAmount')}</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200">
+                      {(data.items || []).map((item, index) => (
+                        <tr key={index}>
+                          <td className="py-2.5 px-3 text-center text-slate-500">{index + 1}</td>
+                          <td className="py-2.5 px-3">
+                            <strong className="text-slate-900">{item.name}</strong>
+                            <span className="block text-[11px] text-slate-400">
+                              {item.productType === 'tissue' ? t('tissuePaper') : t('cuttingNewsPaper')}
+                            </span>
+                          </td>
+                          <td className="py-2.5 px-3 text-right font-medium">
+                            {formatQty(item.quantity, item.unit || t('kg'))}
+                          </td>
+                          <td className="py-2.5 px-3 text-right text-slate-600">
+                            {formatCurrency(item.rate)}
+                          </td>
+                          <td className="py-2.5 px-3 text-right font-bold text-slate-900">
+                            {formatCurrency(item.total)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Calculations Summary */}
+                <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-6">
+                  <div className="text-xs text-slate-500 max-w-xs space-y-1">
+                    {data.notes && (
+                      <p><strong className="text-slate-700">{t('notes')}:</strong> {data.notes}</p>
+                    )}
+                    <p className="italic text-[11px] text-slate-400">{t('invoiceNote')}</p>
+                  </div>
+
+                  <div className="w-full sm:w-72 space-y-1.5 text-xs sm:text-sm">
+                    {/* Sub Total */}
+                    <div className="flex justify-between py-1 border-b border-slate-100">
+                      <span className="text-slate-600">{t('subTotal')}:</span>
+                      <span className="font-semibold">{formatCurrency(data.subTotal || data.grandTotal)}</span>
+                    </div>
+
+                    {/* Discount */}
+                    {data.discount > 0 && (
+                      <div className="flex justify-between py-1 border-b border-slate-100 text-rose-600">
+                        <span>{t('discountRow')}:</span>
+                        <span>- {formatCurrency(data.discount)}</span>
+                      </div>
+                    )}
+
+                    {/* Net Payable (this invoice) */}
+                    <div className="flex justify-between py-1.5 border-b-2 border-slate-900 font-bold text-sm sm:text-base text-slate-900">
+                      <span>{t('netPayable')}:</span>
+                      <span>{formatCurrency(data.grandTotal)}</span>
+                    </div>
+
+                    {/* ── Previous Due Carry-Forward Section ── */}
+                    {hasPreviousDue && (
+                      <div className={`flex justify-between items-center py-1.5 border-b border-dashed px-2 rounded ${isSale ? 'border-amber-400 text-amber-800 bg-amber-50' : 'border-rose-400 text-rose-800 bg-rose-50'}`}>
+                        <span className="font-semibold text-xs flex items-center gap-1">
+                          <TrendingUp className="w-3.5 h-3.5" />
+                          {lang === 'bn' ? '+ পূর্ববর্তী বকেয়া' : '+ Previous Outstanding'}:
                         </span>
-                      </td>
-                      <td className="py-2.5 px-3 text-right font-medium">
-                        {formatQty(item.quantity, item.unit || t('kg'))}
-                      </td>
-                      <td className="py-2.5 px-3 text-right text-slate-600">
-                        {formatCurrency(item.rate)}
-                      </td>
-                      <td className="py-2.5 px-3 text-right font-bold text-slate-900">
-                        {formatCurrency(item.total)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                        <span className="font-bold">{formatCurrency(previousDue)}</span>
+                      </div>
+                    )}
 
-            {/* Calculations Summary */}
-            <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-6">
-              <div className="text-xs text-slate-500 max-w-xs space-y-1">
-                {data.notes && (
-                  <p><strong className="text-slate-700">{t('notes')}:</strong> {data.notes}</p>
-                )}
-                <p className="italic text-[11px] text-slate-400">{t('invoiceNote')}</p>
-              </div>
-
-              <div className="w-full sm:w-72 space-y-1.5 text-xs sm:text-sm">
-                {/* Sub Total */}
-                <div className="flex justify-between py-1 border-b border-slate-100">
-                  <span className="text-slate-600">{t('subTotal')}:</span>
-                  <span className="font-semibold">{formatCurrency(data.subTotal || data.grandTotal)}</span>
-                </div>
-
-                {/* Discount */}
-                {data.discount > 0 && (
-                  <div className="flex justify-between py-1 border-b border-slate-100 text-rose-600">
-                    <span>{t('discountRow')}:</span>
-                    <span>- {formatCurrency(data.discount)}</span>
-                  </div>
-                )}
-
-                {/* Net Payable (this invoice) */}
-                <div className="flex justify-between py-1.5 border-b-2 border-slate-900 font-bold text-sm sm:text-base text-slate-900">
-                  <span>{t('netPayable')}:</span>
-                  <span>{formatCurrency(data.grandTotal)}</span>
-                </div>
-
-                {/* ── Previous Due Carry-Forward Section ── */}
-                {hasPreviousDue && (
-                  <div className={`flex justify-between items-center py-1.5 border-b border-dashed px-2 rounded ${isSale ? 'border-amber-400 text-amber-800 bg-amber-50' : 'border-rose-400 text-rose-800 bg-rose-50'}`}>
-                    <span className="font-semibold text-xs flex items-center gap-1">
-                      <TrendingUp className="w-3.5 h-3.5" />
-                      {lang === 'bn' ? '+ পূর্ববর্তী বকেয়া' : '+ Previous Outstanding'}:
-                    </span>
-                    <span className="font-bold">{formatCurrency(previousDue)}</span>
-                  </div>
-                )}
-
-                {/* Amount Paid */}
-                <div className="flex justify-between py-1 text-emerald-700 font-semibold">
-                  <span>{t('amountPaid')}:</span>
-                  <span>{formatCurrency(paidField)}</span>
-                </div>
-
-                {/* Balance Due (this invoice only) */}
-                <div className="flex justify-between py-1 font-bold text-slate-900 bg-slate-50 px-2 rounded">
-                  <span className={data.dueAmount > 0 ? (isSale ? 'text-amber-800' : 'text-rose-800') : 'text-slate-500'}>
-                    {t('balanceDue')}:
-                  </span>
-                  <span className={data.dueAmount > 0 ? (isSale ? 'text-amber-800' : 'text-rose-800') : 'text-slate-500'}>
-                    {formatCurrency(data.dueAmount)}
-                  </span>
-                </div>
-
-                {/* Total Outstanding (with previous due) */}
-                {hasPreviousDue && (
-                  <div className={`mt-2 rounded-xl overflow-hidden border-2 ${isSale ? 'border-amber-500' : 'border-rose-500'}`}>
-                    <div className={`px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-center ${isSale ? 'bg-amber-500 text-white' : 'bg-rose-500 text-white'}`}>
-                      {lang === 'bn' ? 'মোট বকেয়া (এই চালান + পূর্ববর্তী)' : 'Total Outstanding (incl. prev. due)'}
+                    {/* Amount Paid */}
+                    <div className="flex justify-between py-1 text-emerald-700 font-semibold">
+                      <span>{t('amountPaid')}:</span>
+                      <span>{formatCurrency(paidField)}</span>
                     </div>
-                    <div className={`flex justify-between items-center py-2.5 px-3 font-extrabold text-sm sm:text-base ${isSale ? 'bg-amber-100 text-amber-900' : 'bg-rose-100 text-rose-900'}`}>
-                      <span>{lang === 'bn' ? 'এখন মোট পরিশোধযোগ্য:' : 'Now Total Payable:'}</span>
-                      <span className="text-lg sm:text-xl">{formatCurrency(Number(data.dueAmount || 0) + previousDue)}</span>
+
+                    {/* Balance Due (this invoice only) */}
+                    <div className="flex justify-between py-1 font-bold text-slate-900 bg-slate-50 px-2 rounded">
+                      <span className={data.dueAmount > 0 ? (isSale ? 'text-amber-800' : 'text-rose-800') : 'text-slate-500'}>
+                        {t('balanceDue')}:
+                      </span>
+                      <span className={data.dueAmount > 0 ? (isSale ? 'text-amber-800' : 'text-rose-800') : 'text-slate-500'}>
+                        {formatCurrency(data.dueAmount)}
+                      </span>
                     </div>
+
+                    {/* Total Outstanding (with previous due) */}
+                    {hasPreviousDue && (
+                      <div className={`mt-2 rounded-xl overflow-hidden border-2 ${isSale ? 'border-amber-500' : 'border-rose-500'}`}>
+                        <div className={`px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-center ${isSale ? 'bg-amber-500 text-white' : 'bg-rose-500 text-white'}`}>
+                          {lang === 'bn' ? 'মোট বকেয়া (এই চালান + পূর্ববর্তী)' : 'Total Outstanding (incl. prev. due)'}
+                        </div>
+                        <div className={`flex justify-between items-center py-2.5 px-3 font-extrabold text-sm sm:text-base ${isSale ? 'bg-amber-100 text-amber-900' : 'bg-rose-100 text-rose-900'}`}>
+                          <span>{lang === 'bn' ? 'এখন মোট পরিশোধযোগ্য:' : 'Now Total Payable:'}</span>
+                          <span className="text-lg sm:text-xl">{formatCurrency(Number(data.dueAmount || 0) + previousDue)}</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            </div>
+                </div>
+              </>
+            )}
 
             {/* Signatures */}
             <div className="pt-8 sm:pt-12 mt-4 sm:mt-8 border-t border-slate-200 grid grid-cols-2 gap-4 text-center">
               <div>
                 <div className="w-28 sm:w-36 border-b border-slate-400 mx-auto mb-1"></div>
-                <p className="text-[11px] text-slate-500">{lang === 'bn' ? 'গ্রহীতার স্বাক্ষর' : 'Recipient Signature'}</p>
+                <p className="text-[11px] text-slate-500">
+                  {isPayment
+                    ? (isCustomerPayment ? (lang === 'bn' ? 'টাকা প্রদানকারীর স্বাক্ষর' : 'Payer Signature') : (lang === 'bn' ? 'টাকা গ্রহণকারীর স্বাক্ষর' : 'Recipient Signature'))
+                    : (lang === 'bn' ? 'গ্রহীতার স্বাক্ষর' : 'Recipient Signature')}
+                </p>
               </div>
               <div>
                 <div className="w-28 sm:w-36 border-b border-slate-400 mx-auto mb-1"></div>

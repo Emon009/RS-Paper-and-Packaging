@@ -66,7 +66,16 @@ export default function PaymentModal({ isOpen, onClose, onSuccess, initialData =
 
       const res = await response.json();
       if (res.success) {
-        onSuccess();
+        onSuccess(res.payment || {
+          id: `PAY-${Date.now().toString().slice(-6)}`,
+          type: initialData.type,
+          partyName: formData.partyName,
+          partyPhone: formData.partyPhone,
+          amount: amt,
+          date: formData.date,
+          paymentMethod: formData.paymentMethod,
+          notes: formData.notes
+        });
         onClose();
       } else {
         setError(res.message || (lang === 'bn' ? 'পেমেন্ট সংরক্ষণ করতে সমস্যা হয়েছে' : 'Failed to save payment'));
