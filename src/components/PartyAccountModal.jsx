@@ -197,6 +197,25 @@ export default function PartyAccountModal({
     }))
   ];
 
+  // Calculate chronological running balance (from oldest to newest)
+  allEntries.sort((a, b) => new Date(a._date || a.createdAt || 0) - new Date(b._date || b.createdAt || 0));
+  let runningDue = 0;
+  allEntries.forEach(entry => {
+    if (entry._entryType === 'transaction') {
+      const netBill = Number(entry._billedAmount || 0) - Number(entry._paidAmount || 0);
+      runningDue = Math.max(0, runningDue + netBill);
+      entry._runningDue = runningDue;
+    } else if (entry._entryType === 'payment') {
+      const prev = entry.previousDue !== undefined ? Number(entry.previousDue) : runningDue;
+      entry._previousDue = prev;
+      const amt = Number(entry.amount || entry._paidAmount || 0);
+      runningDue = Math.max(0, prev - amt);
+      entry._remainingDue = entry.remainingDue !== undefined ? Number(entry.remainingDue) : runningDue;
+      entry._runningDue = runningDue;
+    }
+  });
+
+  // Then sort descending for display (newest first)
   allEntries.sort((a, b) => new Date(b._date || b.createdAt) - new Date(a._date || a.createdAt));
 
   return (
@@ -441,7 +460,11 @@ export default function PartyAccountModal({
                   {onAddPayment && (
                     <button
                       onClick={() => {
-                        onAddPayment(profile, isCustomer ? 'customer_collection' : 'supplier_payment');
+                        onAddPayment({
+                          ...profile,
+                          currentDue: summary?.netDue,
+                          suggestedAmount: summary?.netDue
+                        }, isCustomer ? 'customer_collection' : 'supplier_payment');
                         onClose();
                       }}
                       className={`flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3.5 py-2 text-white text-xs font-bold rounded-lg shadow-sm transition active:scale-95 ${
@@ -562,6 +585,10 @@ export default function PartyAccountModal({
                                 {entry._entryType === 'payment' && (
                                   <button
                                     onClick={() => {
+                                      const prevDueVal = entry._previousDue ?? entry.previousDue ?? 0;
+                                      const paidVal = entry.amount || entry._paidAmount || 0;
+                                      const remDueVal = entry._remainingDue ?? entry.remainingDue ?? Math.max(0, prevDueVal - paidVal);
+
                                       const receiptData = {
                                         id: entry.id,
                                         date: entry.date || entry._date,
@@ -569,10 +596,12 @@ export default function PartyAccountModal({
                                         partyName: entry.partyName || profile?.name || '',
                                         partyPhone: entry.partyPhone || profile?.phone || '',
                                         partyAddress: profile?.address || '',
-                                        amount: entry.amount || entry._paidAmount || 0,
+                                        amount: paidVal,
                                         paymentMethod: entry.paymentMethod || 'ক্যাশ',
                                         notes: entry.notes || '',
-                                        createdAt: entry.createdAt || entry._date
+                                        createdAt: entry.createdAt || entry._date,
+                                        previousDue: prevDueVal,
+                                        remainingDue: remDueVal
                                       };
                                       if (onViewInvoice) {
                                         onViewInvoice(receiptData, 'payment');

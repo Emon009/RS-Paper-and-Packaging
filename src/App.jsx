@@ -435,7 +435,9 @@ export default function App() {
             data: {
               partyName: party.name,
               partyPhone: party.phone,
-              type: payType
+              type: payType,
+              currentDue: party.currentDue ?? party.netDue ?? party.suggestedAmount ?? 0,
+              suggestedAmount: party.suggestedAmount ?? party.currentDue ?? party.netDue ?? 0
             }
           });
         }}

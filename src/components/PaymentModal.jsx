@@ -8,6 +8,7 @@ export default function PaymentModal({ isOpen, onClose, onSuccess, initialData =
 
   const today = new Date().toISOString().split('T')[0];
   const isSupplier = initialData.type === 'supplier_payment';
+  const partyDue = Number(initialData.currentDue ?? initialData.suggestedAmount ?? 0);
 
   const [formData, setFormData] = useState({
     partyName: initialData.partyName || '',
@@ -58,6 +59,7 @@ export default function PaymentModal({ isOpen, onClose, onSuccess, initialData =
           partyName: formData.partyName,
           partyPhone: formData.partyPhone,
           amount: amt,
+          previousDue: partyDue,
           date: formData.date,
           paymentMethod: formData.paymentMethod,
           notes: formData.notes,
@@ -66,15 +68,21 @@ export default function PaymentModal({ isOpen, onClose, onSuccess, initialData =
 
       const res = await response.json();
       if (res.success) {
-        onSuccess(res.payment || {
-          id: `PAY-${Date.now().toString().slice(-6)}`,
+        const finalPrevDue = res.payment?.previousDue !== undefined ? Number(res.payment.previousDue) : partyDue;
+        const finalRemDue = res.payment?.remainingDue !== undefined ? Number(res.payment.remainingDue) : Math.max(0, finalPrevDue - amt);
+
+        onSuccess({
+          ...(res.payment || {}),
+          id: res.payment?.id || `PAY-${Date.now().toString().slice(-6)}`,
           type: initialData.type,
           partyName: formData.partyName,
           partyPhone: formData.partyPhone,
           amount: amt,
           date: formData.date,
           paymentMethod: formData.paymentMethod,
-          notes: formData.notes
+          notes: formData.notes,
+          previousDue: finalPrevDue,
+          remainingDue: finalRemDue
         });
         onClose();
       } else {
@@ -192,6 +200,30 @@ export default function PaymentModal({ isOpen, onClose, onSuccess, initialData =
               />
               <span className="absolute left-3 top-3 text-sm font-bold text-slate-400">৳</span>
             </div>
+
+            {/* Live Due & Remaining Calculation Preview */}
+            {partyDue > 0 && (
+              <div className={`mt-2 p-2.5 rounded-xl border text-xs space-y-1 ${
+                isSupplier ? 'bg-rose-50/70 border-rose-200 text-rose-900' : 'bg-emerald-50/70 border-emerald-200 text-emerald-900'
+              }`}>
+                <div className="flex justify-between items-center">
+                  <span className="font-semibold text-slate-600">
+                    {isSupplier ? (lang === 'bn' ? 'বর্তমান মোট দেনা:' : 'Current Total Payable:') : (lang === 'bn' ? 'বর্তমান মোট বকেয়া:' : 'Current Total Due:')}
+                  </span>
+                  <span className="font-bold text-slate-900">{formatCurrency(partyDue)}</span>
+                </div>
+                {Number(formData.amount) > 0 && (
+                  <div className={`flex justify-between items-center pt-1 border-t font-semibold ${
+                    isSupplier ? 'border-rose-200 text-rose-900' : 'border-emerald-200 text-emerald-900'
+                  }`}>
+                    <span>{lang === 'bn' ? 'পেমেন্ট পরবর্তী অবশিষ্ট থাকবে:' : 'Remaining Balance After Payment:'}</span>
+                    <span className="font-extrabold text-sm">
+                      {formatCurrency(Math.max(0, partyDue - (parseFloat(formData.amount) || 0)))}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div>

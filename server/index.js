@@ -677,11 +677,20 @@ app.delete('/api/sales/:id', async (req, res) => {
 // ── 7. Payments ──
 app.post('/api/payments', async (req, res) => {
   try {
-    const { type, partyName, partyPhone, amount, date, paymentMethod = 'ক্যাশ', notes = '' } = req.body;
+    const { type, partyName, partyPhone, amount, date, paymentMethod = 'ক্যাশ', notes = '', previousDue } = req.body;
     const amt = parseFloat(amount);
     if (!partyName || !amt || amt <= 0 || !date)
       return res.status(400).json({ success: false, message: 'সঠিক নাম, তারিখ ও টাকার পরিমাণ দিন' });
-    const newPayment = await addPayment({ type, partyName: partyName.trim(), partyPhone: (partyPhone || '').trim(), amount: amt, date, paymentMethod, notes });
+    const newPayment = await addPayment({
+      type,
+      partyName: partyName.trim(),
+      partyPhone: (partyPhone || '').trim(),
+      amount: amt,
+      date,
+      paymentMethod,
+      notes,
+      previousDue: previousDue !== undefined ? parseFloat(previousDue) : undefined
+    });
     res.json({ success: true, message: 'টাকা জমা/পরিশোধের রশিদ সফলভাবে সংরক্ষিত হয়েছে', payment: newPayment });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

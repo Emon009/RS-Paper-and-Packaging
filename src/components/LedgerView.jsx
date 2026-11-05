@@ -186,7 +186,8 @@ export default function LedgerView({ onSettlePayment, onOpenPartyFolder }) {
                             type: 'customer_collection',
                             partyName: cust.name,
                             partyPhone: cust.phone,
-                            suggestedAmount: cust.netDue
+                            suggestedAmount: cust.netDue,
+                            currentDue: cust.netDue
                           })}
                           className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-sm transition active:scale-95"
                         >
@@ -269,7 +270,8 @@ export default function LedgerView({ onSettlePayment, onOpenPartyFolder }) {
                                   type: 'customer_collection',
                                   partyName: cust.name,
                                   partyPhone: cust.phone,
-                                  suggestedAmount: cust.netDue
+                                  suggestedAmount: cust.netDue,
+                                  currentDue: cust.netDue
                                 })}
                                 className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-sm transition active:scale-95"
                               >
@@ -368,7 +370,8 @@ export default function LedgerView({ onSettlePayment, onOpenPartyFolder }) {
                             type: 'supplier_payment',
                             partyName: supp.name,
                             partyPhone: supp.phone,
-                            suggestedAmount: supp.netDue
+                            suggestedAmount: supp.netDue,
+                            currentDue: supp.netDue
                           })}
                           className="px-3 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-semibold shadow-sm transition active:scale-95"
                         >
@@ -451,7 +454,8 @@ export default function LedgerView({ onSettlePayment, onOpenPartyFolder }) {
                                   type: 'supplier_payment',
                                   partyName: supp.name,
                                   partyPhone: supp.phone,
-                                  suggestedAmount: supp.netDue
+                                  suggestedAmount: supp.netDue,
+                                  currentDue: supp.netDue
                                 })}
                                 className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-semibold shadow-sm transition active:scale-95"
                               >

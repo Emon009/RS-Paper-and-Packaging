@@ -36,6 +36,14 @@ export default function InvoiceModal({ isOpen, onClose, data, type = 'sale', com
   const previousDue = Number(data.previousDue || 0);
   const hasPreviousDue = !isPayment && previousDue > 0;
 
+  // Payment specific due and balance calculations
+  const paymentAmount = Number(data.amount || 0);
+  const paymentPreviousDue = Number(data.previousDue || 0);
+  const paymentRemainingDue = data.remainingDue !== undefined 
+    ? Number(data.remainingDue) 
+    : Math.max(0, paymentPreviousDue - paymentAmount);
+  const hasPaymentDue = isPayment && paymentPreviousDue > 0;
+
   const handlePrint = () => {
     window.print();
   };
@@ -160,31 +168,87 @@ export default function InvoiceModal({ isOpen, onClose, data, type = 'sale', com
             {/* ── Money Receipt Body (When type === 'payment') ── */}
             {isPayment ? (
               <div className="space-y-5 mb-6">
-                {/* Highlighted Amount Card */}
-                <div className={`p-4 sm:p-5 rounded-2xl border-2 ${
-                  isCustomerPayment ? 'bg-emerald-50/80 border-emerald-300' : 'bg-rose-50/80 border-rose-300'
-                } flex flex-col sm:flex-row sm:items-center justify-between gap-3`}>
-                  <div>
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">
-                      {isCustomerPayment ? (lang === 'bn' ? 'গৃহীত টাকার পরিমাণ' : 'Amount Received') : (lang === 'bn' ? 'পরিশোধিত টাকার পরিমাণ' : 'Amount Paid')}
-                    </span>
-                    <div className={`text-2xl sm:text-3xl font-black mt-1 ${isCustomerPayment ? 'text-emerald-800' : 'text-rose-800'}`}>
-                      {formatCurrency(data.amount)}
+                {/* Highlighted Amount & Balance Card */}
+                {hasPaymentDue ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    {/* 1. Previous Due */}
+                    <div className="p-3.5 sm:p-4 rounded-xl border bg-slate-50 border-slate-200">
+                      <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-500 block">
+                        {isCustomerPayment ? (lang === 'bn' ? 'পূর্ববর্তী মোট বকেয়া' : 'Previous Due') : (lang === 'bn' ? 'পূর্ববর্তী মোট দেনা' : 'Previous Payable')}
+                      </span>
+                      <div className="text-xl sm:text-2xl font-black text-slate-800 mt-1">
+                        {formatCurrency(paymentPreviousDue)}
+                      </div>
+                      <span className="text-[10px] text-slate-400 mt-1 block">
+                        {lang === 'bn' ? 'পেমেন্ট পূর্ববর্তী মোট পাওনা' : 'Balance before payment'}
+                      </span>
                     </div>
-                    <div className="inline-flex items-center gap-1.5 mt-2 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-white border border-slate-200 text-slate-700 shadow-2xs">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>{lang === 'bn' ? 'সফলভাবে ক্যাশ/পেমেন্ট হিসাবভুক্ত হয়েছে' : 'Payment Successfully Recorded'}</span>
-                    </div>
-                  </div>
 
-                  <div className="text-left sm:text-right space-y-1 text-xs text-slate-600 border-t sm:border-0 pt-2 sm:pt-0 border-slate-200">
-                    <p><strong className="text-slate-800">{lang === 'bn' ? 'পরিশোধের মাধ্যম:' : 'Payment Mode:'}</strong> <span className="font-semibold text-slate-900">{data.paymentMethod || t('cash')}</span></p>
-                    <p><strong className="text-slate-800">{lang === 'bn' ? 'লেনদেনের ধরন:' : 'Transaction Type:'}</strong> {isCustomerPayment ? (lang === 'bn' ? 'কাস্টমার বকেয়া আদায়' : 'Customer Collection') : (lang === 'bn' ? 'সাপ্লায়ার দেনা পরিশোধ' : 'Supplier Payment')}</p>
-                    {data.notes && (
-                      <p><strong className="text-slate-800">{t('notes')}:</strong> <span className="text-slate-700">{data.notes}</span></p>
-                    )}
+                    {/* 2. Paid Now */}
+                    <div className={`p-3.5 sm:p-4 rounded-xl border-2 ${
+                      isCustomerPayment ? 'bg-emerald-50/90 border-emerald-400' : 'bg-rose-50/90 border-rose-400'
+                    }`}>
+                      <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-600 block">
+                        {isCustomerPayment ? (lang === 'bn' ? 'বর্তমান জমা / আদায়' : 'Amount Received') : (lang === 'bn' ? 'বর্তমান পরিশোধ' : 'Amount Paid')}
+                      </span>
+                      <div className={`text-xl sm:text-2xl font-black mt-1 ${isCustomerPayment ? 'text-emerald-800' : 'text-rose-800'}`}>
+                        {formatCurrency(paymentAmount)}
+                      </div>
+                      <div className="inline-flex items-center gap-1 mt-1 text-[10px] font-bold text-emerald-700">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                        <span>{lang === 'bn' ? 'সফলভাবে জমা হয়েছে' : 'Recorded'}</span>
+                      </div>
+                    </div>
+
+                    {/* 3. Remaining Due */}
+                    <div className={`p-3.5 sm:p-4 rounded-xl border-2 ${
+                      paymentRemainingDue > 0
+                        ? (isCustomerPayment ? 'bg-amber-50/90 border-amber-400' : 'bg-rose-50/90 border-rose-400')
+                        : 'bg-emerald-50/90 border-emerald-300'
+                    }`}>
+                      <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-600 block">
+                        {isCustomerPayment ? (lang === 'bn' ? 'অবশিষ্ট বকেয়া পাওনা' : 'Remaining Due') : (lang === 'bn' ? 'অবশিষ্ট দেনা' : 'Remaining Payable')}
+                      </span>
+                      <div className={`text-xl sm:text-2xl font-black mt-1 ${
+                        paymentRemainingDue > 0
+                          ? (isCustomerPayment ? 'text-amber-800' : 'text-rose-800')
+                          : 'text-emerald-700'
+                      }`}>
+                        {formatCurrency(paymentRemainingDue)}
+                      </div>
+                      <span className={`text-[10px] font-semibold mt-1 block ${paymentRemainingDue > 0 ? (isCustomerPayment ? 'text-amber-700' : 'text-rose-700') : 'text-emerald-700'}`}>
+                        {paymentRemainingDue > 0 
+                          ? (lang === 'bn' ? 'পরবর্তী হিসেবে প্রযোজ্য' : 'Current active balance')
+                          : (lang === 'bn' ? 'সকল বকেয়া পরিশোধিত' : 'Fully cleared')}
+                      </span>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className={`p-4 sm:p-5 rounded-2xl border-2 ${
+                    isCustomerPayment ? 'bg-emerald-50/80 border-emerald-300' : 'bg-rose-50/80 border-rose-300'
+                  } flex flex-col sm:flex-row sm:items-center justify-between gap-3`}>
+                    <div>
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">
+                        {isCustomerPayment ? (lang === 'bn' ? 'গৃহীত টাকার পরিমাণ' : 'Amount Received') : (lang === 'bn' ? 'পরিশোধিত টাকার পরিমাণ' : 'Amount Paid')}
+                      </span>
+                      <div className={`text-2xl sm:text-3xl font-black mt-1 ${isCustomerPayment ? 'text-emerald-800' : 'text-rose-800'}`}>
+                        {formatCurrency(paymentAmount)}
+                      </div>
+                      <div className="inline-flex items-center gap-1.5 mt-2 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-white border border-slate-200 text-slate-700 shadow-2xs">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>{lang === 'bn' ? 'সফলভাবে ক্যাশ/পেমেন্ট হিসাবভুক্ত হয়েছে' : 'Payment Successfully Recorded'}</span>
+                      </div>
+                    </div>
+
+                    <div className="text-left sm:text-right space-y-1 text-xs text-slate-600 border-t sm:border-0 pt-2 sm:pt-0 border-slate-200">
+                      <p><strong className="text-slate-800">{lang === 'bn' ? 'পরিশোধের মাধ্যম:' : 'Payment Mode:'}</strong> <span className="font-semibold text-slate-900">{data.paymentMethod || t('cash')}</span></p>
+                      <p><strong className="text-slate-800">{lang === 'bn' ? 'লেনদেনের ধরন:' : 'Transaction Type:'}</strong> {isCustomerPayment ? (lang === 'bn' ? 'কাস্টমার বকেয়া আদায়' : 'Customer Collection') : (lang === 'bn' ? 'সাপ্লায়ার দেনা পরিশোধ' : 'Supplier Payment')}</p>
+                      {data.notes && (
+                        <p><strong className="text-slate-800">{t('notes')}:</strong> <span className="text-slate-700">{data.notes}</span></p>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {/* Receipt Table */}
                 <div className="overflow-x-auto touch-scroll">
@@ -218,32 +282,91 @@ export default function InvoiceModal({ isOpen, onClose, data, type = 'sale', com
                           </span>
                         </td>
                         <td className={`py-3.5 px-3 text-right font-black text-base sm:text-lg ${isCustomerPayment ? 'text-emerald-700' : 'text-rose-700'}`}>
-                          {formatCurrency(data.amount)}
+                          {formatCurrency(paymentAmount)}
                         </td>
                       </tr>
                     </tbody>
                     <tfoot>
-                      <tr className="border-t-2 border-slate-900 font-bold bg-slate-50 text-sm">
-                        <td colSpan="3" className="py-3 px-3 text-right text-slate-800">
-                          {lang === 'bn' ? 'মোট গৃহীত টাকা (Net Amount):' : 'Total Net Amount:'}
-                        </td>
-                        <td className="py-3 px-3 text-right font-black text-slate-900 text-base sm:text-lg">
-                          {formatCurrency(data.amount)}
-                        </td>
-                      </tr>
+                      {hasPaymentDue ? (
+                        <>
+                          <tr className="border-t-2 border-slate-900 bg-slate-50 text-xs sm:text-sm">
+                            <td colSpan="3" className="py-2.5 px-3 text-right font-semibold text-slate-700">
+                              {isCustomerPayment
+                                ? (lang === 'bn' ? 'পূর্ববর্তী মোট বকেয়া (Previous Outstanding):' : 'Previous Outstanding:')
+                                : (lang === 'bn' ? 'পূর্ববর্তী মোট দেনা (Previous Payable):' : 'Previous Payable:')}
+                            </td>
+                            <td className="py-2.5 px-3 text-right font-bold text-slate-900">
+                              {formatCurrency(paymentPreviousDue)}
+                            </td>
+                          </tr>
+                          <tr className="border-t border-slate-200 bg-emerald-50/60 text-xs sm:text-sm text-emerald-800">
+                            <td colSpan="3" className="py-2.5 px-3 text-right font-bold">
+                              {isCustomerPayment
+                                ? (lang === 'bn' ? '(-) বর্তমান জমা (Paid Amount):' : '(-) Received Amount:')
+                                : (lang === 'bn' ? '(-) বর্তমান পরিশোধ (Paid Amount):' : '(-) Paid Amount:')}
+                            </td>
+                            <td className="py-2.5 px-3 text-right font-black text-emerald-700 text-sm sm:text-base">
+                              {formatCurrency(paymentAmount)}
+                            </td>
+                          </tr>
+                          <tr className={`border-t-2 border-slate-900 text-sm sm:text-base font-black ${
+                            paymentRemainingDue > 0
+                              ? (isCustomerPayment ? 'bg-amber-100 text-amber-900' : 'bg-rose-100 text-rose-900')
+                              : 'bg-emerald-100 text-emerald-900'
+                          }`}>
+                            <td colSpan="3" className="py-3 px-3 text-right">
+                              {isCustomerPayment
+                                ? (lang === 'bn' ? 'বর্তমান অবশিষ্ট বকেয়া পাওনা (Balance Due):' : 'Remaining Balance Due:')
+                                : (lang === 'bn' ? 'বর্তমান অবশিষ্ট দেনা (Balance Payable):' : 'Remaining Balance Payable:')}
+                            </td>
+                            <td className={`py-3 px-3 text-right text-base sm:text-lg ${
+                              paymentRemainingDue > 0
+                                ? (isCustomerPayment ? 'text-amber-900' : 'text-rose-900')
+                                : 'text-emerald-800'
+                            }`}>
+                              {formatCurrency(paymentRemainingDue)}
+                            </td>
+                          </tr>
+                        </>
+                      ) : (
+                        <tr className="border-t-2 border-slate-900 font-bold bg-slate-50 text-sm">
+                          <td colSpan="3" className="py-3 px-3 text-right text-slate-800">
+                            {lang === 'bn' ? 'মোট গৃহীত টাকা (Net Amount):' : 'Total Net Amount:'}
+                          </td>
+                          <td className="py-3 px-3 text-right font-black text-slate-900 text-base sm:text-lg">
+                            {formatCurrency(paymentAmount)}
+                          </td>
+                        </tr>
+                      )}
                     </tfoot>
                   </table>
                 </div>
 
                 {/* Official Computerized Note */}
                 <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-600 flex items-center justify-between flex-wrap gap-2">
-                  <p className="italic text-[11px] text-slate-500">
-                    {lang === 'bn'
-                      ? 'ধন্যবাদান্তে গৃহীত। এটি আর.এস. পেপার এন্ড প্যাকেজিং-এর অফিশিয়াল কম্পিউটারাইজড রশিদ।'
-                      : 'Received with thanks. This is an official computerized receipt from R.S. Paper and Packaging.'}
+                  <p className="italic text-[11px] text-slate-600">
+                    {hasPaymentDue ? (
+                      paymentRemainingDue > 0 ? (
+                        lang === 'bn'
+                          ? `ধন্যবাদান্তে গৃহীত। এই জমা গ্রহণের পর কাস্টমারের নিকট অবশিষ্ট বকেয়া ${formatCurrency(paymentRemainingDue)} প্রযোজ্য থাকবে।`
+                          : `Received with thanks. Remaining balance due of ${formatCurrency(paymentRemainingDue)} applies after this receipt.`
+                      ) : (
+                        lang === 'bn'
+                          ? 'ধন্যবাদান্তে গৃহীত। এই জমার মাধ্যমে পূর্বের সকল বকেয়া সম্পূর্ণরূপে পরিশোধিত হলো।'
+                          : 'Received with thanks. All outstanding dues have been fully settled with this receipt.'
+                      )
+                    ) : (
+                      lang === 'bn'
+                        ? 'ধন্যবাদান্তে গৃহীত। এটি আর.এস. পেপার এন্ড প্যাকেজিং-এর অফিশিয়াল কম্পিউটারাইজড রশিদ।'
+                        : 'Received with thanks. This is an official computerized receipt from R.S. Paper and Packaging.'
+                    )}
                   </p>
-                  <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                    ✔ {lang === 'bn' ? 'পরিশোধিত' : 'Paid'}
+                  <span className={`text-[11px] font-bold px-2 py-0.5 rounded border ${
+                    paymentRemainingDue > 0 && hasPaymentDue
+                      ? 'text-amber-700 bg-amber-50 border-amber-200'
+                      : 'text-emerald-700 bg-emerald-50 border-emerald-200'
+                  }`}>
+                    ✔ {paymentRemainingDue === 0 && hasPaymentDue ? (lang === 'bn' ? 'সম্পূর্ণ পরিশোধিত' : 'Fully Settled') : (lang === 'bn' ? 'পরিশোধিত' : 'Paid')}
                   </span>
                 </div>
               </div>

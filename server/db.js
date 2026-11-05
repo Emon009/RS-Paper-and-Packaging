@@ -940,6 +940,32 @@ export async function addPayment(paymentData) {
   const id = paymentData.id || `PAY-${Date.now().toString().slice(-6)}`;
   const record = { ...paymentData, id, createdAt: paymentData.createdAt || new Date().toISOString() };
 
+  // Calculate previous due and remaining due for this payment
+  let prevDue = 0;
+  if (paymentData.previousDue !== undefined && !isNaN(paymentData.previousDue) && Number(paymentData.previousDue) > 0) {
+    prevDue = Number(paymentData.previousDue);
+  } else {
+    try {
+      if (record.type === 'customer_collection' && record.partyName) {
+        const folder = await getCustomerFolderDetails(record.partyName);
+        if (folder?.summary?.netDue !== undefined) {
+          prevDue = Number(folder.summary.netDue || 0);
+        }
+      } else if (record.type === 'supplier_payment' && record.partyName) {
+        const folder = await getSupplierFolderDetails(record.partyName);
+        if (folder?.summary?.netDue !== undefined) {
+          prevDue = Number(folder.summary.netDue || 0);
+        }
+      }
+    } catch (e) {
+      console.warn('Could not auto-calculate previous due in addPayment:', e.message);
+    }
+  }
+
+  const remDue = Math.max(0, prevDue - Number(record.amount || 0));
+  record.previousDue = prevDue;
+  record.remainingDue = remDue;
+
   if (record.type === 'customer_collection' && record.partyName) {
     await ensureCustomerExists(record.partyName, record.partyPhone);
   } else if (record.type === 'supplier_payment' && record.partyName) {
