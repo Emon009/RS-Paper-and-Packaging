@@ -198,7 +198,20 @@ export default function PartyAccountModal({
   ];
 
   // Calculate chronological running balance (from oldest to newest)
-  allEntries.sort((a, b) => new Date(a._date || a.createdAt || 0) - new Date(b._date || b.createdAt || 0));
+  const getEntryTime = (e) => {
+    const d = new Date(e.createdAt || e._date || 0).getTime();
+    return isNaN(d) ? 0 : d;
+  };
+
+  allEntries.sort((a, b) => {
+    const diff = getEntryTime(a) - getEntryTime(b);
+    if (diff !== 0) return diff;
+    // Same day/time: transactions (sales/purchases) precede payments
+    if (a._entryType === 'transaction' && b._entryType === 'payment') return -1;
+    if (a._entryType === 'payment' && b._entryType === 'transaction') return 1;
+    return 0;
+  });
+
   let runningDue = 0;
   allEntries.forEach(entry => {
     if (entry._entryType === 'transaction') {
@@ -206,17 +219,27 @@ export default function PartyAccountModal({
       runningDue = Math.max(0, runningDue + netBill);
       entry._runningDue = runningDue;
     } else if (entry._entryType === 'payment') {
-      const prev = entry.previousDue !== undefined ? Number(entry.previousDue) : runningDue;
+      const prev = (entry.previousDue !== undefined && Number(entry.previousDue) > 0)
+        ? Number(entry.previousDue)
+        : runningDue;
       entry._previousDue = prev;
       const amt = Number(entry.amount || entry._paidAmount || 0);
       runningDue = Math.max(0, prev - amt);
-      entry._remainingDue = entry.remainingDue !== undefined ? Number(entry.remainingDue) : runningDue;
+      entry._remainingDue = (entry.remainingDue !== undefined && entry.previousDue !== undefined)
+        ? Number(entry.remainingDue)
+        : runningDue;
       entry._runningDue = runningDue;
     }
   });
 
   // Then sort descending for display (newest first)
-  allEntries.sort((a, b) => new Date(b._date || b.createdAt) - new Date(a._date || a.createdAt));
+  allEntries.sort((a, b) => {
+    const diff = getEntryTime(b) - getEntryTime(a);
+    if (diff !== 0) return diff;
+    if (a._entryType === 'payment' && b._entryType === 'transaction') return -1;
+    if (a._entryType === 'transaction' && b._entryType === 'payment') return 1;
+    return 0;
+  });
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4">

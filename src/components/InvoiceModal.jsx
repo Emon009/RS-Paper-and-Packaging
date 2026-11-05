@@ -42,7 +42,7 @@ export default function InvoiceModal({ isOpen, onClose, data, type = 'sale', com
   const paymentRemainingDue = data.remainingDue !== undefined 
     ? Number(data.remainingDue) 
     : Math.max(0, paymentPreviousDue - paymentAmount);
-  const hasPaymentDue = isPayment && paymentPreviousDue > 0;
+  const hasPaymentDue = isPayment && (paymentPreviousDue > 0 || Number(data.remainingDue || 0) > 0);
 
   const handlePrint = () => {
     window.print();
