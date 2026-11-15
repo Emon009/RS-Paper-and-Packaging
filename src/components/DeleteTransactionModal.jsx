@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Trash2, Lock, Eye, EyeOff, AlertTriangle, Package, Database, CheckSquare, Square } from 'lucide-react';
 import { formatCurrency, formatQty, formatDate } from '../utils/format';
 import { useLanguage } from '../i18n/LanguageContext';
@@ -17,6 +17,16 @@ export default function DeleteTransactionModal({
   const [permanentDelete, setPermanentDelete] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (isOpen) {
+      setPassword('');
+      setError('');
+      setRestoreStock(true);
+      setPermanentDelete(true);
+      setShowPassword(false);
+    }
+  }, [isOpen, transaction?.id]);
 
   if (!isOpen || !transaction) return null;
 

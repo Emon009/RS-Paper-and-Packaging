@@ -200,7 +200,7 @@ export default function TransactionHistory({
                       </button>
                     )}
                     <button
-                      onClick={() => onDeleteTransaction(item.id, item.txnType)}
+                      onClick={() => onDeleteTransaction(item, item.txnType)}
                       title={t('delete')}
                       className="p-1.5 text-rose-500 hover:text-rose-700 bg-rose-50 rounded-lg transition active:scale-95"
                     >
@@ -353,7 +353,7 @@ export default function TransactionHistory({
                         )}
 
                         <button
-                          onClick={() => onDeleteTransaction(item.id, item.txnType)}
+                          onClick={() => onDeleteTransaction(item, item.txnType)}
                           title={t('delete')}
                           className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition"
                         >
