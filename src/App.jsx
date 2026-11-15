@@ -13,6 +13,7 @@ import PartyAccountModal from './components/PartyAccountModal';
 import LoginScreen from './components/LoginScreen';
 import BottomNav from './components/BottomNav';
 import InstallPrompt from './components/InstallPrompt';
+import DeleteTransactionModal from './components/DeleteTransactionModal';
 import { PlusCircle, ShoppingBag, ShoppingCart, RefreshCw, Sparkles } from 'lucide-react';
 import { useLanguage } from './i18n/LanguageContext';
 
@@ -37,6 +38,7 @@ export default function App() {
   const [invoiceModal, setInvoiceModal] = useState({ isOpen: false, data: null, type: 'sale' });
   const [paymentModal, setPaymentModal] = useState({ isOpen: false, data: {} });
   const [partyAccountModal, setPartyAccountModal] = useState({ isOpen: false, partyInfo: null, type: 'customer' });
+  const [deleteTransactionState, setDeleteTransactionState] = useState({ isOpen: false, item: null, type: 'sale' });
 
   const handleEditTransaction = (item, type) => {
     if (type === 'sale') {
@@ -150,26 +152,19 @@ export default function App() {
     setInvoiceModal({ isOpen: true, data: newSale, type: 'sale' });
   };
 
-  const handleDeleteTransaction = async (id, type) => {
-    const confirmMsg = lang === 'bn'
-      ? 'আপনি কি নিশ্চিত যে এই রেকর্ডটি ডিলিট করতে চান? এতে গোডাউনের স্টক পুনরায় সমন্বয় হবে।'
-      : 'Are you sure you want to delete this record? Warehouse stock will be adjusted accordingly.';
-    if (!window.confirm(confirmMsg)) {
-      return;
+  const handleDeleteTransaction = (idOrItem, type) => {
+    let targetItem = null;
+    if (typeof idOrItem === 'object' && idOrItem !== null) {
+      targetItem = idOrItem;
+    } else {
+      const list = type === 'purchase' ? purchases : sales;
+      targetItem = list.find(x => x.id === idOrItem) || { id: idOrItem };
     }
-
-    try {
-      const endpoint = type === 'purchase' ? `/api/purchases/${id}` : `/api/sales/${id}`;
-      const res = await fetch(endpoint, { method: 'DELETE' });
-      const data = await res.json();
-      if (data.success) {
-        fetchData();
-      } else {
-        alert(data.message || (lang === 'bn' ? 'ডিলিট করা সম্ভব হয়নি' : 'Failed to delete record'));
-      }
-    } catch (err) {
-      alert(lang === 'bn' ? 'সার্ভার এর সাথে সংযোগ ব্যর্থ' : 'Connection to server failed');
-    }
+    setDeleteTransactionState({
+      isOpen: true,
+      item: targetItem,
+      type: type || 'sale'
+    });
   };
 
   const handleSettlePayment = (partyInfo) => {
@@ -440,6 +435,18 @@ export default function App() {
               suggestedAmount: party.suggestedAmount ?? party.currentDue ?? party.netDue ?? 0
             }
           });
+        }}
+      />
+
+      {/* Secure Delete Transaction Modal (Password Verification + Godown Stock & Database Options) */}
+      <DeleteTransactionModal
+        isOpen={deleteTransactionState.isOpen}
+        onClose={() => setDeleteTransactionState({ isOpen: false, item: null, type: 'sale' })}
+        transaction={deleteTransactionState.item}
+        type={deleteTransactionState.type}
+        onSuccess={() => {
+          setDeleteTransactionState({ isOpen: false, item: null, type: 'sale' });
+          fetchData();
         }}
       />
 

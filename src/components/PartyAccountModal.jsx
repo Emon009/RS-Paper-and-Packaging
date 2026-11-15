@@ -24,6 +24,7 @@ import { formatCurrency, formatQty, formatDate } from '../utils/format';
 import { useLanguage } from '../i18n/LanguageContext';
 import { compressImage } from '../utils/imageCompressor';
 import DeletePartyModal from './DeletePartyModal';
+import DeleteTransactionModal from './DeleteTransactionModal';
 
 export default function PartyAccountModal({
   isOpen,
@@ -46,6 +47,7 @@ export default function PartyAccountModal({
   const [savingName, setSavingName] = useState(false);
   const [nameError, setNameError] = useState('');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteTxnTarget, setDeleteTxnTarget] = useState(null);
   const fileInputRef = useRef(null);
 
   const isCustomer = type === 'customer';
@@ -605,6 +607,18 @@ export default function PartyAccountModal({
                                     <Pencil className="w-3 h-3" />
                                   </button>
                                 )}
+                                {entry._entryType === 'transaction' && (
+                                  <button
+                                    onClick={() => setDeleteTxnTarget({
+                                      item: entry.raw || entry,
+                                      type: isCustomer ? 'sale' : 'purchase'
+                                    })}
+                                    className="p-1 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded transition cursor-pointer"
+                                    title={lang === 'bn' ? 'চালান ডিলিট করুন' : 'Delete Invoice'}
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </button>
+                                )}
                                 {entry._entryType === 'payment' && (
                                   <button
                                     onClick={() => {
@@ -635,6 +649,18 @@ export default function PartyAccountModal({
                                   >
                                     <FileText className="w-3 h-3 text-emerald-600" />
                                     <span>{lang === 'bn' ? 'রশিদ' : 'Receipt'}</span>
+                                  </button>
+                                )}
+                                {entry._entryType === 'payment' && (
+                                  <button
+                                    onClick={() => setDeleteTxnTarget({
+                                      item: entry.raw || entry,
+                                      type: 'payment'
+                                    })}
+                                    className="p-1 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded transition cursor-pointer"
+                                    title={lang === 'bn' ? 'পেমেন্ট ডিলিট করুন' : 'Delete Payment'}
+                                  >
+                                    <Trash2 className="w-3 h-3" />
                                   </button>
                                 )}
                               </div>
@@ -675,6 +701,19 @@ export default function PartyAccountModal({
         onSuccess={() => {
           onClose();
           onPartyDeleted?.();
+        }}
+      />
+
+      {/* Secure Delete Transaction Modal (Password Verification + Godown Stock & Database Options) */}
+      <DeleteTransactionModal
+        isOpen={Boolean(deleteTxnTarget)}
+        onClose={() => setDeleteTxnTarget(null)}
+        transaction={deleteTxnTarget?.item}
+        type={deleteTxnTarget?.type}
+        onSuccess={() => {
+          setDeleteTxnTarget(null);
+          loadDetails(partyInfo);
+          onPartyUpdated?.();
         }}
       />
     </div>

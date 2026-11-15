@@ -545,9 +545,19 @@ app.post('/api/purchases/:id/update', async (req, res) => {
 
 app.delete('/api/purchases/:id', async (req, res) => {
   try {
-    const deleted = await deletePurchase(req.params.id);
+    const password = req.body?.password || req.headers['x-admin-password'] || req.query?.password;
+    if (!password) {
+      return res.status(401).json({ success: false, message: 'ক্রয় রেকর্ড ডিলিট করতে অ্যাডমিন পাসওয়ার্ড আবশ্যক' });
+    }
+    const isValid = await verifyAdminPassword(password);
+    if (!isValid) {
+      return res.status(401).json({ success: false, message: 'ভুল অ্যাডমিন পাসওয়ার্ড! সঠিক পাসওয়ার্ড দিন।' });
+    }
+    const restoreStock = req.body?.restoreStock !== false;
+    const permanentDelete = req.body?.permanentDelete !== false;
+    const deleted = await deletePurchase(req.params.id, { restoreStock, permanentDelete });
     if (!deleted) return res.status(404).json({ success: false, message: 'ক্রয় রেকর্ড পাওয়া যায়নি' });
-    res.json({ success: true, message: 'রেকর্ড মুছে ফেলা হয়েছে' });
+    res.json({ success: true, message: 'ক্রয় রেকর্ড সফলভাবে ডিলিট করা হয়েছে' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -666,9 +676,19 @@ app.post('/api/sales/:id/update', async (req, res) => {
 
 app.delete('/api/sales/:id', async (req, res) => {
   try {
-    const deleted = await deleteSale(req.params.id);
+    const password = req.body?.password || req.headers['x-admin-password'] || req.query?.password;
+    if (!password) {
+      return res.status(401).json({ success: false, message: 'বিক্রয় রেকর্ড ডিলিট করতে অ্যাডমিন পাসওয়ার্ড আবশ্যক' });
+    }
+    const isValid = await verifyAdminPassword(password);
+    if (!isValid) {
+      return res.status(401).json({ success: false, message: 'ভুল অ্যাডমিন পাসওয়ার্ড! সঠিক পাসওয়ার্ড দিন।' });
+    }
+    const restoreStock = req.body?.restoreStock !== false;
+    const permanentDelete = req.body?.permanentDelete !== false;
+    const deleted = await deleteSale(req.params.id, { restoreStock, permanentDelete });
     if (!deleted) return res.status(404).json({ success: false, message: 'বিক্রয় রেকর্ড পাওয়া যায়নি' });
-    res.json({ success: true, message: 'রেকর্ড মুছে ফেলা হয়েছে' });
+    res.json({ success: true, message: 'বিক্রয় রেকর্ড সফলভাবে ডিলিট করা হয়েছে' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -699,9 +719,18 @@ app.post('/api/payments', async (req, res) => {
 
 app.delete('/api/payments/:id', async (req, res) => {
   try {
-    const deleted = await deletePayment(req.params.id);
+    const password = req.body?.password || req.headers['x-admin-password'] || req.query?.password;
+    if (!password) {
+      return res.status(401).json({ success: false, message: 'পেমেন্ট রেকর্ড ডিলিট করতে অ্যাডমিন পাসওয়ার্ড আবশ্যক' });
+    }
+    const isValid = await verifyAdminPassword(password);
+    if (!isValid) {
+      return res.status(401).json({ success: false, message: 'ভুল অ্যাডমিন পাসওয়ার্ড! সঠিক পাসওয়ার্ড দিন।' });
+    }
+    const permanentDelete = req.body?.permanentDelete !== false;
+    const deleted = await deletePayment(req.params.id, { permanentDelete });
     if (!deleted) return res.status(404).json({ success: false, message: 'পেমেন্ট রেকর্ড পাওয়া যায়নি' });
-    res.json({ success: true, message: 'পেমেন্ট রেকর্ড মুছে ফেলা হয়েছে' });
+    res.json({ success: true, message: 'পেমেন্ট রেকর্ড সফলভাবে ডিলিট করা হয়েছে' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

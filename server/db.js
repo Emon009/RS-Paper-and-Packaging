@@ -253,6 +253,7 @@ export async function getGodownStock() {
   const cuttingNews = { purchasedQty: 0, purchasedCost: 0, soldQty: 0, soldRevenue: 0 };
 
   purchases.forEach(p => {
+    if (p.isCancelled) return;
     (p.items || []).forEach(item => {
       const qty = Number(item.quantity || 0);
       const total = Number(item.total || 0);
@@ -261,12 +262,39 @@ export async function getGodownStock() {
     });
   });
 
+  (data.stockAdditions || []).forEach(a => {
+    (a.items || []).forEach(item => {
+      const qty = Number(item.quantity || 0);
+      if (item.productType === 'tissue') { tissue.purchasedQty += qty; }
+      else if (item.productType === 'cutting_news') { cuttingNews.purchasedQty += qty; }
+    });
+  });
+
   sales.forEach(s => {
+    if (s.isCancelled) {
+      if (s.restoreStock === false) {
+        (s.items || []).forEach(item => {
+          const qty = Number(item.quantity || 0);
+          const total = Number(item.total || 0);
+          if (item.productType === 'tissue') { tissue.soldQty += qty; tissue.soldRevenue += total; }
+          else if (item.productType === 'cutting_news') { cuttingNews.soldQty += qty; cuttingNews.soldRevenue += total; }
+        });
+      }
+      return;
+    }
     (s.items || []).forEach(item => {
       const qty = Number(item.quantity || 0);
       const total = Number(item.total || 0);
       if (item.productType === 'tissue') { tissue.soldQty += qty; tissue.soldRevenue += total; }
       else if (item.productType === 'cutting_news') { cuttingNews.soldQty += qty; cuttingNews.soldRevenue += total; }
+    });
+  });
+
+  (data.stockDeductions || []).forEach(d => {
+    (d.items || []).forEach(item => {
+      const qty = Number(item.quantity || 0);
+      if (item.productType === 'tissue') { tissue.soldQty += qty; }
+      else if (item.productType === 'cutting_news') { cuttingNews.soldQty += qty; }
     });
   });
 
@@ -639,9 +667,9 @@ export async function getCustomerFolderDetails(idOrName) {
   );
   if (!customer) return null;
 
-  const sales = (data.sales || []).filter(s => strEq(s.customerName, customer.name));
+  const sales = (data.sales || []).filter(s => strEq(s.customerName, customer.name) && !s.isCancelled);
   const payments = (data.payments || []).filter(p =>
-    p.type === 'customer_collection' && strEq(p.partyName, customer.name)
+    p.type === 'customer_collection' && strEq(p.partyName, customer.name) && !p.isCancelled
   );
 
   let totalSoldAmount = 0, initialReceivedAmount = 0, tissueSoldQty = 0, cuttingSoldQty = 0;
@@ -699,9 +727,9 @@ export async function getSupplierFolderDetails(idOrName) {
   );
   if (!supplier) return null;
 
-  const purchases = (data.purchases || []).filter(p => strEq(p.supplierName, supplier.name));
+  const purchases = (data.purchases || []).filter(p => strEq(p.supplierName, supplier.name) && !p.isCancelled);
   const payments = (data.payments || []).filter(p =>
-    p.type === 'supplier_payment' && strEq(p.partyName, supplier.name)
+    p.type === 'supplier_payment' && strEq(p.partyName, supplier.name) && !p.isCancelled
   );
 
   let totalPurchasedAmount = 0, initialPaidAmount = 0, tissuePurchasedQty = 0, cuttingPurchasedQty = 0;
@@ -786,14 +814,46 @@ export async function addPurchase(purchaseData) {
   return record;
 }
 
-export async function deletePurchase(id) {
-  const ok = await supabaseDelete('purchases', id);
-  if (!IS_VERCEL && localFallbackAvailable) {
-    const localData = loadLocalData();
-    const idx = (localData.purchases || []).findIndex(p => p.id === id);
-    if (idx !== -1) { localData.purchases.splice(idx, 1); saveLocalData(localData); }
+export async function deletePurchase(id, options = {}) {
+  const { restoreStock = true, permanentDelete = true } = options;
+  const data = await loadData();
+  const existing = (data.purchases || []).find(p => p.id === id);
+
+  if (permanentDelete) {
+    if (!restoreStock && existing && Array.isArray(existing.items)) {
+      if (!IS_VERCEL && localFallbackAvailable) {
+        const localData = loadLocalData();
+        localData.stockAdditions = localData.stockAdditions || [];
+        localData.stockAdditions.push({
+          id: `ADD-${Date.now()}`,
+          date: new Date().toISOString().split('T')[0],
+          items: existing.items,
+          reason: `ডিলিটকৃত ক্রয় #${id}-এর স্টক বহাল রাখা হয়েছে`
+        });
+        saveLocalData(localData);
+      }
+    }
+    const ok = await supabaseDelete('purchases', id);
+    if (!IS_VERCEL && localFallbackAvailable) {
+      const localData = loadLocalData();
+      const idx = (localData.purchases || []).findIndex(p => p.id === id);
+      if (idx !== -1) { localData.purchases.splice(idx, 1); saveLocalData(localData); }
+    }
+    return ok || Boolean(existing);
+  } else {
+    if (!IS_VERCEL && localFallbackAvailable) {
+      const localData = loadLocalData();
+      const idx = (localData.purchases || []).findIndex(p => p.id === id);
+      if (idx !== -1) {
+        localData.purchases[idx].isCancelled = true;
+        localData.purchases[idx].status = 'cancelled';
+        localData.purchases[idx].restoreStock = restoreStock;
+        saveLocalData(localData);
+      }
+    }
+    await supabaseDelete('purchases', id);
+    return true;
   }
-  return ok;
 }
 
 export async function updatePurchase(id, purchaseData) {
@@ -926,14 +986,46 @@ export async function updateSale(id, saleData) {
   return record;
 }
 
-export async function deleteSale(id) {
-  const ok = await supabaseDelete('sales', id);
-  if (!IS_VERCEL && localFallbackAvailable) {
-    const localData = loadLocalData();
-    const idx = (localData.sales || []).findIndex(s => s.id === id);
-    if (idx !== -1) { localData.sales.splice(idx, 1); saveLocalData(localData); }
+export async function deleteSale(id, options = {}) {
+  const { restoreStock = true, permanentDelete = true } = options;
+  const data = await loadData();
+  const existing = (data.sales || []).find(s => s.id === id);
+
+  if (permanentDelete) {
+    if (!restoreStock && existing && Array.isArray(existing.items)) {
+      if (!IS_VERCEL && localFallbackAvailable) {
+        const localData = loadLocalData();
+        localData.stockDeductions = localData.stockDeductions || [];
+        localData.stockDeductions.push({
+          id: `DED-${Date.now()}`,
+          date: new Date().toISOString().split('T')[0],
+          items: existing.items,
+          reason: `ডিলিটকৃত বিক্রয় #${id}-এর স্টক কর্তন বহাল রাখা হয়েছে`
+        });
+        saveLocalData(localData);
+      }
+    }
+    const ok = await supabaseDelete('sales', id);
+    if (!IS_VERCEL && localFallbackAvailable) {
+      const localData = loadLocalData();
+      const idx = (localData.sales || []).findIndex(s => s.id === id);
+      if (idx !== -1) { localData.sales.splice(idx, 1); saveLocalData(localData); }
+    }
+    return ok || Boolean(existing);
+  } else {
+    if (!IS_VERCEL && localFallbackAvailable) {
+      const localData = loadLocalData();
+      const idx = (localData.sales || []).findIndex(s => s.id === id);
+      if (idx !== -1) {
+        localData.sales[idx].isCancelled = true;
+        localData.sales[idx].status = 'cancelled';
+        localData.sales[idx].restoreStock = restoreStock;
+        saveLocalData(localData);
+      }
+    }
+    await supabaseDelete('sales', id);
+    return true;
   }
-  return ok;
 }
 
 export async function addPayment(paymentData) {
@@ -992,12 +1084,21 @@ export async function addPayment(paymentData) {
   return record;
 }
 
-export async function deletePayment(id) {
+export async function deletePayment(id, options = {}) {
+  const { permanentDelete = true } = options;
   const ok = await supabaseDelete('payments', id);
   if (!IS_VERCEL && localFallbackAvailable) {
     const localData = loadLocalData();
     const idx = (localData.payments || []).findIndex(p => p.id === id);
-    if (idx !== -1) { localData.payments.splice(idx, 1); saveLocalData(localData); }
+    if (idx !== -1) {
+      if (permanentDelete) {
+        localData.payments.splice(idx, 1);
+      } else {
+        localData.payments[idx].isCancelled = true;
+        localData.payments[idx].status = 'cancelled';
+      }
+      saveLocalData(localData);
+    }
   }
   return ok;
 }
