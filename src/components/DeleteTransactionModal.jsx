@@ -163,49 +163,52 @@ export default function DeleteTransactionModal({
           {/* ── The Two Required Options ── */}
           <div className="space-y-2.5">
             <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider">
-              {lang === 'bn' ? 'ডিলিটের ধরন ও অপশন নির্বাচন:' : 'Select Deletion Options:'}
+              {lang === 'bn' ? 'ডিলিটের ধরন ও অপশন নির্বাচন:' : 'ডিলিট অপশন নির্বাচন (Select Deletion Options):'}
             </label>
 
             {/* Option 1: Re-add to Godown Stock */}
-            {!isPayment ? (
-              <div
-                onClick={() => setRestoreStock(!restoreStock)}
-                className={`p-3 rounded-xl border-2 cursor-pointer transition flex items-start gap-3 select-none ${
-                  restoreStock
-                    ? 'border-emerald-500 bg-emerald-50/60'
-                    : 'border-slate-200 bg-white hover:bg-slate-50'
-                }`}
-              >
-                <div className="mt-0.5 shrink-0 text-emerald-600">
-                  {restoreStock ? <CheckSquare className="w-5 h-5 text-emerald-600" /> : <Square className="w-5 h-5 text-slate-400" />}
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-1.5">
-                    <Package className="w-4 h-4 text-emerald-700" />
-                    <span className="text-xs sm:text-sm font-bold text-slate-900">
-                      {lang === 'bn' ? '১. এটি পুনরায় গোডাউন স্টকে যুক্ত হয়ে যাবে' : '1. Restore items to Godown Stock'}
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-slate-600 mt-0.5 leading-snug">
-                    {isSale
-                      ? (lang === 'bn' ? 'বিক্রয়কৃত পণ্য গোডাউন স্টকে ফেরত যোগ হবে (স্টক বৃদ্ধি পাবে)।' : 'Sold items will be added back to godown stock.')
-                      : (lang === 'bn' ? 'ক্রয়কৃত পণ্য গোডাউন স্টক থেকে বাদ দেওয়া হবে।' : 'Purchased items will be subtracted from godown stock.')}
-                  </p>
-                </div>
+            <div
+              onClick={() => setRestoreStock(!restoreStock)}
+              className={`p-3 rounded-xl border-2 cursor-pointer transition flex items-start gap-3 select-none ${
+                restoreStock
+                  ? 'border-emerald-500 bg-emerald-50/70 shadow-2xs'
+                  : 'border-slate-200 bg-white hover:bg-slate-50'
+              }`}
+            >
+              <div className="mt-0.5 shrink-0 text-emerald-600">
+                {restoreStock ? <CheckSquare className="w-5 h-5 text-emerald-600" /> : <Square className="w-5 h-5 text-slate-400" />}
               </div>
-            ) : (
-              <div className="p-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs text-slate-500 flex items-center gap-2">
-                <Package className="w-4 h-4 text-slate-400" />
-                <span>{lang === 'bn' ? '১. এটি একটি পেমেন্ট/ক্যাশ এন্ট্রি (কোনো স্টক পণ্য নেই)।' : '1. Payment entry (No physical stock items).'}</span>
+              <div className="flex-1">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <Package className="w-4 h-4 text-emerald-700" />
+                  <span className="text-xs sm:text-sm font-bold text-slate-900">
+                    {lang === 'bn' 
+                      ? '১. এটি পুনরায় গোডাউন স্টকে যুক্ত হয়ে যাবে কি না' 
+                      : '1. এটি পুনরায় গোডাউন স্টকে যুক্ত হয়ে যাবে (Restore to Godown Stock)'}
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-600 mt-1 leading-snug">
+                  {isSale
+                    ? (lang === 'bn' 
+                        ? 'বিক্রয়কৃত পণ্য গোডাউন স্টকে পুনরায় ফেরত যোগ হবে (স্টক বৃদ্ধি পাবে)।' 
+                        : 'Sold items will be added back to godown stock (Restore Stock).')
+                    : (isPurchase
+                        ? (lang === 'bn' 
+                            ? 'ক্রয়কৃত পণ্য গোডাউন স্টক থেকে বাদ দেওয়া হবে।' 
+                            : 'Purchased items will be subtracted from godown stock.')
+                        : (lang === 'bn'
+                            ? 'চেক থাকলে গোডাউন স্টক সমন্বিত ও অক্ষুণ্ণ থাকবে।'
+                            : 'Keep godown stock properly synchronized.'))}
+                </p>
               </div>
-            )}
+            </div>
 
             {/* Option 2: Completely Remove from Database */}
             <div
               onClick={() => setPermanentDelete(!permanentDelete)}
               className={`p-3 rounded-xl border-2 cursor-pointer transition flex items-start gap-3 select-none ${
                 permanentDelete
-                  ? 'border-rose-500 bg-rose-50/60'
+                  ? 'border-rose-500 bg-rose-50/70 shadow-2xs'
                   : 'border-slate-200 bg-white hover:bg-slate-50'
               }`}
             >
@@ -213,16 +216,22 @@ export default function DeleteTransactionModal({
                 {permanentDelete ? <CheckSquare className="w-5 h-5 text-rose-600" /> : <Square className="w-5 h-5 text-slate-400" />}
               </div>
               <div className="flex-1">
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 flex-wrap">
                   <Database className="w-4 h-4 text-rose-700" />
                   <span className="text-xs sm:text-sm font-bold text-slate-900">
-                    {lang === 'bn' ? '২. এটি সম্পূর্ণ ডাটাবেজ থেকে রিমুভ হয়ে যাবে' : '2. Completely remove from Database'}
+                    {lang === 'bn' 
+                      ? '২. এটি সম্পূর্ণ ডাটাবেজ থেকে রিমুভ হয়ে যাবে কি না' 
+                      : '2. এটি সম্পূর্ণ ডাটাবেজ থেকে রিমুভ হয়ে যাবে (Completely remove from Database)'}
                   </span>
                 </div>
-                <p className="text-[11px] text-slate-600 mt-0.5 leading-snug">
+                <p className="text-[11px] text-slate-600 mt-1 leading-snug">
                   {permanentDelete
-                    ? (lang === 'bn' ? 'রেকর্ডটি ডাটাবেজ থেকে স্থায়ীভাবে মুছে ফেলা হবে।' : 'The record will be permanently deleted from database.')
-                    : (lang === 'bn' ? 'ডাটাবেজে বাতিল (Cancelled) হিসেবে থাকবে, তবে হিসাবে বা বকেয়ায় কোনো প্রভাব ফেলবে না।' : 'Will be marked as Cancelled/Void without affecting totals.')}
+                    ? (lang === 'bn' 
+                        ? 'রেকর্ডটি ডাটাবেজ থেকে স্থায়ীভাবে মুছে ফেলা হবে।' 
+                        : 'The record will be permanently deleted from database.')
+                    : (lang === 'bn' 
+                        ? 'ডাটাবেজে বাতিল (Cancelled) হিসেবে থাকবে, তবে হিসাবে বা বকেয়ায় কোনো প্রভাব ফেলবে না।' 
+                        : 'Will be marked as Cancelled/Void without affecting totals or dues.')}
                 </p>
               </div>
             </div>
@@ -240,7 +249,7 @@ export default function DeleteTransactionModal({
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center gap-1.5">
               <Lock className="w-3.5 h-3.5 text-slate-500" />
-              <span>{lang === 'bn' ? 'অ্যাডমিন পাসওয়ার্ড দিন *' : 'Enter Admin Password *'}</span>
+              <span>{lang === 'bn' ? 'অ্যাডমিন পাসওয়ার্ড দিন *' : 'অ্যাডমিন পাসওয়ার্ড (Admin Password) *'}</span>
             </label>
             <div className="relative">
               <input
@@ -271,7 +280,7 @@ export default function DeleteTransactionModal({
               disabled={loading}
               className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition cursor-pointer"
             >
-              {t('cancel')}
+              {lang === 'bn' ? 'বাতিল' : 'Cancel'}
             </button>
             <button
               type="submit"
@@ -282,7 +291,7 @@ export default function DeleteTransactionModal({
               <span>
                 {loading
                   ? (lang === 'bn' ? 'যাচাই ও ডিলিট হচ্ছে...' : 'Verifying & Deleting...')
-                  : (lang === 'bn' ? 'ডিলিট নিশ্চিত করুন' : 'Confirm Delete')}
+                  : (lang === 'bn' ? 'ডিলিট নিশ্চিত করুন' : 'ডিলিট নিশ্চিত করুন (Confirm Delete)')}
               </span>
             </button>
           </div>
