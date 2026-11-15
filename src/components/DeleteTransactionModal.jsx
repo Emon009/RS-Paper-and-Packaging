@@ -13,8 +13,8 @@ export default function DeleteTransactionModal({
   const { t, lang } = useLanguage();
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [restoreStock, setRestoreStock] = useState(true);
-  const [permanentDelete, setPermanentDelete] = useState(true);
+  const [restoreStock, setRestoreStock] = useState(false);
+  const [permanentDelete, setPermanentDelete] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -22,8 +22,8 @@ export default function DeleteTransactionModal({
     if (isOpen) {
       setPassword('');
       setError('');
-      setRestoreStock(true);
-      setPermanentDelete(true);
+      setRestoreStock(false);
+      setPermanentDelete(false);
       setShowPassword(false);
     }
   }, [isOpen, transaction?.id]);
