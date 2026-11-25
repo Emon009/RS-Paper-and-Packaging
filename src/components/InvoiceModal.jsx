@@ -417,7 +417,9 @@ export default function InvoiceModal({ isOpen, onClose, data, type = 'sale', com
                         <th className="py-2.5 px-3 w-12 text-center">{t('sl')}</th>
                         <th className="py-2.5 px-3">{t('description')}</th>
                         <th className="py-2.5 px-3 text-right">{t('qty')}</th>
-                        <th className="py-2.5 px-3 text-right">{t('ratePerKg')}</th>
+                        <th className="py-2.5 px-3 text-right">
+                          {(data.items || []).some(i => i.productType === 'bosta') ? t('rate') : t('ratePerKg')}
+                        </th>
                         <th className="py-2.5 px-3 text-right">{t('totalAmount')}</th>
                       </tr>
                     </thead>
@@ -440,6 +442,9 @@ export default function InvoiceModal({ isOpen, onClose, data, type = 'sale', com
                           </td>
                           <td className="py-2.5 px-3 text-right text-slate-600">
                             {formatCurrency(item.rate)}
+                            {(data.items || []).some(i => i.productType === 'bosta') && (
+                              <span className="text-[10px] text-slate-400">/{item.unit || t('kg')}</span>
+                            )}
                           </td>
                           <td className="py-2.5 px-3 text-right font-bold text-slate-900">
                             {formatCurrency(item.total)}
