@@ -454,8 +454,8 @@ app.post('/api/purchases', async (req, res) => {
       const rate = Math.max(0, parseFloat(item.rate) || 0);
       return {
         productType: item.productType,
-        name: item.name || (item.productType === 'tissue' ? 'Tissue Paper' : 'Cutting / News Paper'),
-        quantity: qty, unit: item.unit || 'কেজি', rate, total: Math.round(qty * rate * 100) / 100
+        name: item.name || (item.productType === 'tissue' ? 'Tissue Paper' : (item.productType === 'bosta' ? 'বস্তা' : 'Cutting / News Paper')),
+        quantity: qty, unit: item.unit || (item.productType === 'bosta' ? 'পিস' : 'কেজি'), rate, total: Math.round(qty * rate * 100) / 100
       };
     });
     const subTotal = calculatedItems.reduce((acc, curr) => acc + curr.total, 0);
@@ -488,8 +488,8 @@ app.put('/api/purchases/:id', async (req, res) => {
       const rate = Math.max(0, parseFloat(item.rate) || 0);
       return {
         productType: item.productType,
-        name: item.name || (item.productType === 'tissue' ? 'Tissue Paper' : 'Cutting / News Paper'),
-        quantity: qty, unit: item.unit || 'কেজি', rate, total: Math.round(qty * rate * 100) / 100
+        name: item.name || (item.productType === 'tissue' ? 'Tissue Paper' : (item.productType === 'bosta' ? 'বস্তা' : 'Cutting / News Paper')),
+        quantity: qty, unit: item.unit || (item.productType === 'bosta' ? 'পিস' : 'কেজি'), rate, total: Math.round(qty * rate * 100) / 100
       };
     });
     const subTotal = calculatedItems.reduce((acc, curr) => acc + curr.total, 0);
@@ -521,8 +521,8 @@ app.post('/api/purchases/:id/update', async (req, res) => {
       const rate = Math.max(0, parseFloat(item.rate) || 0);
       return {
         productType: item.productType,
-        name: item.name || (item.productType === 'tissue' ? 'Tissue Paper' : 'Cutting / News Paper'),
-        quantity: qty, unit: item.unit || 'কেজি', rate, total: Math.round(qty * rate * 100) / 100
+        name: item.name || (item.productType === 'tissue' ? 'Tissue Paper' : (item.productType === 'bosta' ? 'বস্তা' : 'Cutting / News Paper')),
+        quantity: qty, unit: item.unit || (item.productType === 'bosta' ? 'পিস' : 'কেজি'), rate, total: Math.round(qty * rate * 100) / 100
       };
     });
     const subTotal = calculatedItems.reduce((acc, curr) => acc + curr.total, 0);
@@ -585,8 +585,8 @@ app.post('/api/sales', async (req, res) => {
       const rate = Math.max(0, parseFloat(item.rate) || 0);
       return {
         productType: item.productType,
-        name: item.name || (item.productType === 'tissue' ? 'Tissue Paper' : 'Cutting / News Paper'),
-        quantity: qty, unit: item.unit || 'কেজি', rate, total: Math.round(qty * rate * 100) / 100
+        name: item.name || (item.productType === 'tissue' ? 'Tissue Paper' : (item.productType === 'bosta' ? 'বস্তা' : 'Cutting / News Paper')),
+        quantity: qty, unit: item.unit || (item.productType === 'bosta' ? 'পিস' : 'কেজি'), rate, total: Math.round(qty * rate * 100) / 100
       };
     });
     const subTotal = calculatedItems.reduce((acc, curr) => acc + curr.total, 0);
@@ -619,8 +619,8 @@ app.put('/api/sales/:id', async (req, res) => {
       const rate = Math.max(0, parseFloat(item.rate) || 0);
       return {
         productType: item.productType,
-        name: item.name || (item.productType === 'tissue' ? 'Tissue Paper' : 'Cutting / News Paper'),
-        quantity: qty, unit: item.unit || 'কেজি', rate, total: Math.round(qty * rate * 100) / 100
+        name: item.name || (item.productType === 'tissue' ? 'Tissue Paper' : (item.productType === 'bosta' ? 'বস্তা' : 'Cutting / News Paper')),
+        quantity: qty, unit: item.unit || (item.productType === 'bosta' ? 'পিস' : 'কেজি'), rate, total: Math.round(qty * rate * 100) / 100
       };
     });
     const subTotal = calculatedItems.reduce((acc, curr) => acc + curr.total, 0);
@@ -652,8 +652,8 @@ app.post('/api/sales/:id/update', async (req, res) => {
       const rate = Math.max(0, parseFloat(item.rate) || 0);
       return {
         productType: item.productType,
-        name: item.name || (item.productType === 'tissue' ? 'Tissue Paper' : 'Cutting / News Paper'),
-        quantity: qty, unit: item.unit || 'কেজি', rate, total: Math.round(qty * rate * 100) / 100
+        name: item.name || (item.productType === 'tissue' ? 'Tissue Paper' : (item.productType === 'bosta' ? 'বস্তা' : 'Cutting / News Paper')),
+        quantity: qty, unit: item.unit || (item.productType === 'bosta' ? 'পিস' : 'কেজি'), rate, total: Math.round(qty * rate * 100) / 100
       };
     });
     const subTotal = calculatedItems.reduce((acc, curr) => acc + curr.total, 0);

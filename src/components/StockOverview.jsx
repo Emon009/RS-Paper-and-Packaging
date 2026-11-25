@@ -4,19 +4,20 @@ import { formatCurrency, formatQty } from '../utils/format';
 import { useLanguage } from '../i18n/LanguageContext';
 
 export default function StockOverview({ stats, onRefresh }) {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   if (!stats) return null;
 
-  const { tissue = {}, cuttingNews = {}, totalStockValue = 0 } = stats.stock || {};
+  const { tissue = {}, cuttingNews = {}, bosta = {}, totalStockValue = 0 } = stats.stock || {};
 
-  const getStockStatus = (qty) => {
+  const getStockStatus = (qty, lowThreshold = 500) => {
     if (qty <= 0) return { label: t('stockEmpty'), color: 'bg-red-100 text-red-800 border-red-200' };
-    if (qty < 500) return { label: t('stockLow'), color: 'bg-amber-100 text-amber-800 border-amber-200' };
+    if (qty < lowThreshold) return { label: t('stockLow'), color: 'bg-amber-100 text-amber-800 border-amber-200' };
     return { label: t('stockOk'), color: 'bg-emerald-100 text-emerald-800 border-emerald-200' };
   };
 
   const tissueStatus = getStockStatus(tissue.currentStock || 0);
   const cuttingStatus = getStockStatus(cuttingNews.currentStock || 0);
+  const bostaStatus = getStockStatus(bosta.currentStock || 0, 100);
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -47,7 +48,7 @@ export default function StockOverview({ stats, onRefresh }) {
       </div>
 
       {/* Stock Cards Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         
         {/* Tissue Paper Stock Card */}
         <div className="bg-white rounded-2xl border border-sky-200 shadow-sm p-4 sm:p-6 relative overflow-hidden">
@@ -168,6 +169,69 @@ export default function StockOverview({ stats, onRefresh }) {
           <div className="pt-2 sm:pt-3 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between text-xs text-slate-600 gap-1 sm:gap-0">
             <span>{t('avgPurchaseRate')}: <strong>{formatCurrency(cuttingNews.avgPurchaseRate)}/{t('kg')}</strong></span>
             <span>{t('stockValuation')}: <strong className="text-slate-900">{formatCurrency(cuttingNews.estimatedStockValue)}</strong></span>
+          </div>
+        </div>
+
+        {/* Bosta Stock Card */}
+        <div className="bg-white rounded-2xl border border-violet-200 shadow-sm p-4 sm:p-6 relative overflow-hidden">
+          <div className="flex items-start justify-between gap-2 mb-3 sm:mb-4">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-violet-500 animate-pulse shrink-0"></span>
+                <h3 className="text-base sm:text-xl font-bold text-slate-800 truncate">3. বস্তা</h3>
+              </div>
+              <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5 truncate">
+                {lang === 'bn' ? 'পিস হিসেবে ক্রয় ও বিক্রয়' : 'Bought & sold by piece'}
+              </p>
+            </div>
+            <span className={`text-[10px] sm:text-xs px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full border font-semibold shrink-0 ${bostaStatus.color}`}>
+              {bostaStatus.label}
+            </span>
+          </div>
+
+          <div className="bg-violet-50/70 border border-violet-100 rounded-xl p-3 sm:p-4 mb-3 sm:mb-5 text-center">
+            <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-violet-700 block mb-0.5 sm:mb-1">
+              {t('currentStockInHand')}
+            </span>
+            <div className="text-2xl sm:text-4xl font-extrabold text-violet-800 tracking-tight">
+              {formatQty(bosta.currentStock || 0, 'পিস')}
+            </div>
+            <div className="text-[11px] sm:text-xs text-violet-600 mt-0.5 sm:mt-1 font-medium">
+              {lang === 'bn' ? 'একক: পিস' : 'Unit: Piece'}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-3 sm:mb-4">
+            <div className="bg-slate-50 rounded-xl p-2.5 sm:p-3 border border-slate-100">
+              <div className="flex items-center gap-1 text-[11px] sm:text-xs text-indigo-700 font-medium mb-0.5">
+                <ArrowDown className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
+                <span className="truncate">{t('totalPurchaseIn')}:</span>
+              </div>
+              <div className="text-base sm:text-lg font-bold text-slate-800">
+                {formatQty(bosta.purchasedQty || 0, 'পিস')}
+              </div>
+              <span className="text-[10px] sm:text-[11px] text-slate-500 block truncate">
+                {t('purchaseCost')}: {formatCurrency(bosta.purchasedCost)}
+              </span>
+            </div>
+
+            <div className="bg-slate-50 rounded-xl p-2.5 sm:p-3 border border-slate-100">
+              <div className="flex items-center gap-1 text-[11px] sm:text-xs text-emerald-700 font-medium mb-0.5">
+                <ArrowUp className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
+                <span className="truncate">{t('totalSaleOut')}:</span>
+              </div>
+              <div className="text-base sm:text-lg font-bold text-slate-800">
+                {formatQty(bosta.soldQty || 0, 'পিস')}
+              </div>
+              <span className="text-[10px] sm:text-[11px] text-slate-500 block truncate">
+                {t('saleRevenue')}: {formatCurrency(bosta.soldRevenue)}
+              </span>
+            </div>
+          </div>
+
+          <div className="pt-2 sm:pt-3 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between text-xs text-slate-600 gap-1 sm:gap-0">
+            <span>{t('avgPurchaseRate')}: <strong>{formatCurrency(bosta.avgPurchaseRate)}/পিস</strong></span>
+            <span>{t('stockValuation')}: <strong className="text-slate-900">{formatCurrency(bosta.estimatedStockValue)}</strong></span>
           </div>
         </div>
 

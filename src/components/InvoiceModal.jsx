@@ -428,7 +428,11 @@ export default function InvoiceModal({ isOpen, onClose, data, type = 'sale', com
                           <td className="py-2.5 px-3">
                             <strong className="text-slate-900">{item.name}</strong>
                             <span className="block text-[11px] text-slate-400">
-                              {item.productType === 'tissue' ? t('tissuePaper') : t('cuttingNewsPaper')}
+                              {item.productType === 'tissue'
+                                ? t('tissuePaper')
+                                : (item.productType === 'bosta'
+                                    ? (lang === 'bn' ? 'বস্তা (পিস)' : 'Bosta (Piece)')
+                                    : t('cuttingNewsPaper'))}
                             </span>
                           </td>
                           <td className="py-2.5 px-3 text-right font-medium">

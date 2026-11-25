@@ -251,6 +251,7 @@ export async function getGodownStock() {
 
   const tissue = { purchasedQty: 0, purchasedCost: 0, soldQty: 0, soldRevenue: 0 };
   const cuttingNews = { purchasedQty: 0, purchasedCost: 0, soldQty: 0, soldRevenue: 0 };
+  const bosta = { purchasedQty: 0, purchasedCost: 0, soldQty: 0, soldRevenue: 0 };
 
   purchases.forEach(p => {
     if (p.isCancelled) return;
@@ -259,6 +260,7 @@ export async function getGodownStock() {
       const total = Number(item.total || 0);
       if (item.productType === 'tissue') { tissue.purchasedQty += qty; tissue.purchasedCost += total; }
       else if (item.productType === 'cutting_news') { cuttingNews.purchasedQty += qty; cuttingNews.purchasedCost += total; }
+      else if (item.productType === 'bosta') { bosta.purchasedQty += qty; bosta.purchasedCost += total; }
     });
   });
 
@@ -267,6 +269,7 @@ export async function getGodownStock() {
       const qty = Number(item.quantity || 0);
       if (item.productType === 'tissue') { tissue.purchasedQty += qty; }
       else if (item.productType === 'cutting_news') { cuttingNews.purchasedQty += qty; }
+      else if (item.productType === 'bosta') { bosta.purchasedQty += qty; }
     });
   });
 
@@ -278,6 +281,7 @@ export async function getGodownStock() {
           const total = Number(item.total || 0);
           if (item.productType === 'tissue') { tissue.soldQty += qty; tissue.soldRevenue += total; }
           else if (item.productType === 'cutting_news') { cuttingNews.soldQty += qty; cuttingNews.soldRevenue += total; }
+          else if (item.productType === 'bosta') { bosta.soldQty += qty; bosta.soldRevenue += total; }
         });
       }
       return;
@@ -287,6 +291,7 @@ export async function getGodownStock() {
       const total = Number(item.total || 0);
       if (item.productType === 'tissue') { tissue.soldQty += qty; tissue.soldRevenue += total; }
       else if (item.productType === 'cutting_news') { cuttingNews.soldQty += qty; cuttingNews.soldRevenue += total; }
+      else if (item.productType === 'bosta') { bosta.soldQty += qty; bosta.soldRevenue += total; }
     });
   });
 
@@ -295,6 +300,7 @@ export async function getGodownStock() {
       const qty = Number(item.quantity || 0);
       if (item.productType === 'tissue') { tissue.soldQty += qty; }
       else if (item.productType === 'cutting_news') { cuttingNews.soldQty += qty; }
+      else if (item.productType === 'bosta') { bosta.soldQty += qty; }
     });
   });
 
@@ -306,7 +312,11 @@ export async function getGodownStock() {
   cuttingNews.avgPurchaseRate = cuttingNews.purchasedQty > 0 ? (cuttingNews.purchasedCost / cuttingNews.purchasedQty) : 0;
   cuttingNews.estimatedStockValue = Math.max(0, cuttingNews.currentStock) * cuttingNews.avgPurchaseRate;
 
-  return { tissue, cuttingNews, totalStockValue: tissue.estimatedStockValue + cuttingNews.estimatedStockValue };
+  bosta.currentStock = bosta.purchasedQty - bosta.soldQty;
+  bosta.avgPurchaseRate = bosta.purchasedQty > 0 ? (bosta.purchasedCost / bosta.purchasedQty) : 0;
+  bosta.estimatedStockValue = Math.max(0, bosta.currentStock) * bosta.avgPurchaseRate;
+
+  return { tissue, cuttingNews, bosta, totalStockValue: tissue.estimatedStockValue + cuttingNews.estimatedStockValue + bosta.estimatedStockValue };
 }
 
 // ==========================================
@@ -672,13 +682,14 @@ export async function getCustomerFolderDetails(idOrName) {
     p.type === 'customer_collection' && strEq(p.partyName, customer.name) && !p.isCancelled
   );
 
-  let totalSoldAmount = 0, initialReceivedAmount = 0, tissueSoldQty = 0, cuttingSoldQty = 0;
+  let totalSoldAmount = 0, initialReceivedAmount = 0, tissueSoldQty = 0, cuttingSoldQty = 0, bostaSoldQty = 0;
   sales.forEach(s => {
     totalSoldAmount += Number(s.grandTotal || 0);
     initialReceivedAmount += Number(s.receivedAmount || 0);
     (s.items || []).forEach(item => {
       if (item.productType === 'tissue') tissueSoldQty += Number(item.quantity || 0);
       if (item.productType === 'cutting_news') cuttingSoldQty += Number(item.quantity || 0);
+      if (item.productType === 'bosta') bostaSoldQty += Number(item.quantity || 0);
     });
   });
 
@@ -707,7 +718,7 @@ export async function getCustomerFolderDetails(idOrName) {
     customer,
     summary: {
       totalSoldAmount, initialReceivedAmount, laterCollectedAmount, totalCollected, netDue,
-      tissueSoldQty, cuttingSoldQty, invoicesCount: sales.length, paymentsCount: payments.length,
+      tissueSoldQty, cuttingSoldQty, bostaSoldQty, invoicesCount: sales.length, paymentsCount: payments.length,
       firstTxnDate: sales.slice(-1)[0]?.date || customer.createdAt,
       lastTxnDate: ledgerHistory[0]?.date || customer.createdAt
     },
@@ -732,13 +743,14 @@ export async function getSupplierFolderDetails(idOrName) {
     p.type === 'supplier_payment' && strEq(p.partyName, supplier.name) && !p.isCancelled
   );
 
-  let totalPurchasedAmount = 0, initialPaidAmount = 0, tissuePurchasedQty = 0, cuttingPurchasedQty = 0;
+  let totalPurchasedAmount = 0, initialPaidAmount = 0, tissuePurchasedQty = 0, cuttingPurchasedQty = 0, bostaPurchasedQty = 0;
   purchases.forEach(p => {
     totalPurchasedAmount += Number(p.grandTotal || 0);
     initialPaidAmount += Number(p.paidAmount || 0);
     (p.items || []).forEach(item => {
       if (item.productType === 'tissue') tissuePurchasedQty += Number(item.quantity || 0);
       if (item.productType === 'cutting_news') cuttingPurchasedQty += Number(item.quantity || 0);
+      if (item.productType === 'bosta') bostaPurchasedQty += Number(item.quantity || 0);
     });
   });
 
@@ -767,7 +779,7 @@ export async function getSupplierFolderDetails(idOrName) {
     supplier,
     summary: {
       totalPurchasedAmount, initialPaidAmount, laterPaidAmount, totalPaid, netDue,
-      tissuePurchasedQty, cuttingPurchasedQty, invoicesCount: purchases.length, paymentsCount: payments.length,
+      tissuePurchasedQty, cuttingPurchasedQty, bostaPurchasedQty, invoicesCount: purchases.length, paymentsCount: payments.length,
       firstTxnDate: purchases.slice(-1)[0]?.date || supplier.createdAt,
       lastTxnDate: ledgerHistory[0]?.date || supplier.createdAt
     },

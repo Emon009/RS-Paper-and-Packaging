@@ -4,15 +4,16 @@ import { formatCurrency, formatQty } from '../utils/format';
 import { useLanguage } from '../i18n/LanguageContext';
 
 export default function StatsCards({ stats, onNavigate }) {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   if (!stats) return null;
 
   const { stock, finance } = stats;
   const tissue = stock?.tissue || {};
   const cutting = stock?.cuttingNews || {};
+  const bosta = stock?.bosta || {};
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4 mb-4 sm:mb-6">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-4 mb-4 sm:mb-6">
       
       {/* 1. Tissue Paper Stock Card */}
       <div 
@@ -66,6 +67,34 @@ export default function StatsCards({ stats, onNavigate }) {
           </div>
           <p className="mt-1 text-[10px] sm:text-[11px] text-amber-700 font-medium truncate">
             {t('stockValue')}: ~ {formatCurrency(cutting.estimatedStockValue)}
+          </p>
+        </div>
+      </div>
+
+      {/* 3. Bosta Stock Card */}
+      <div 
+        onClick={() => onNavigate('stock')}
+        className="bg-white rounded-xl p-3 sm:p-5 border border-violet-100 shadow-xs hover:shadow-md transition cursor-pointer relative overflow-hidden group flex flex-col justify-between tap-press"
+      >
+        <div className="absolute top-0 right-0 w-16 sm:w-24 h-16 sm:h-24 bg-violet-50 rounded-bl-full -mr-3 -mt-3 sm:-mr-4 sm:-mt-4 transition group-hover:scale-110" />
+        <div className="relative">
+          <div className="flex items-center justify-between mb-2 sm:mb-3">
+            <span className="px-2 py-0.5 text-[10px] sm:text-xs font-semibold bg-violet-100 text-violet-800 rounded truncate max-w-[110px] sm:max-w-none">
+              {lang === 'bn' ? 'বস্তা স্টক' : 'Bosta Stock'}
+            </span>
+            <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg bg-violet-500 text-white flex items-center justify-center shadow-sm shrink-0">
+              <Package className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            </div>
+          </div>
+          <div className="text-lg sm:text-2xl font-bold text-slate-800 tracking-tight">
+            {formatQty(bosta.currentStock || 0, 'পিস')}
+          </div>
+          <div className="mt-1.5 sm:mt-2 pt-1.5 sm:pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] sm:text-xs text-slate-500">
+            <span>{t('purchased')}: <strong className="text-slate-700">{formatQty(bosta.purchasedQty || 0, '')}</strong></span>
+            <span>{t('sold')}: <strong className="text-slate-700">{formatQty(bosta.soldQty || 0, '')}</strong></span>
+          </div>
+          <p className="mt-1 text-[10px] sm:text-[11px] text-violet-700 font-medium truncate">
+            {t('stockValue')}: ~ {formatCurrency(bosta.estimatedStockValue)}
           </p>
         </div>
       </div>

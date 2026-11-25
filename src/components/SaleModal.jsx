@@ -9,6 +9,7 @@ export default function SaleModal({ isOpen, onClose, onSuccess, currentStock = {
 
   const tissueAvailable = currentStock?.tissue?.currentStock || 0;
   const cuttingAvailable = currentStock?.cuttingNews?.currentStock || 0;
+  const bostaAvailable = currentStock?.bosta?.currentStock || 0;
 
   const [formData, setFormData] = useState({
     customerName: initialParty?.name || '',
@@ -19,6 +20,8 @@ export default function SaleModal({ isOpen, onClose, onSuccess, currentStock = {
     tissueRate: '',
     cuttingQty: '',
     cuttingRate: '',
+    bostaQty: '',
+    bostaRate: '',
     receivedAmount: '',
     paymentMethod: 'ক্যাশ',
     notes: '',
@@ -55,6 +58,7 @@ export default function SaleModal({ isOpen, onClose, onSuccess, currentStock = {
       if (editData) {
         const tissueItem = (editData.items || []).find(i => i.productType === 'tissue');
         const cuttingItem = (editData.items || []).find(i => i.productType === 'cutting_news');
+        const bostaItem = (editData.items || []).find(i => i.productType === 'bosta');
         setFormData({
           customerName: editData.customerName || '',
           customerPhone: editData.customerPhone || '',
@@ -64,6 +68,8 @@ export default function SaleModal({ isOpen, onClose, onSuccess, currentStock = {
           tissueRate: tissueItem ? String(tissueItem.rate || '') : '',
           cuttingQty: cuttingItem ? String(cuttingItem.quantity || '') : '',
           cuttingRate: cuttingItem ? String(cuttingItem.rate || '') : '',
+          bostaQty: bostaItem ? String(bostaItem.quantity || '') : '',
+          bostaRate: bostaItem ? String(bostaItem.rate || '') : '',
           receivedAmount: editData.receivedAmount !== undefined ? String(editData.receivedAmount) : '',
           paymentMethod: editData.paymentMethod || 'ক্যাশ',
           notes: editData.notes || '',
@@ -80,6 +86,8 @@ export default function SaleModal({ isOpen, onClose, onSuccess, currentStock = {
           tissueRate: '',
           cuttingQty: '',
           cuttingRate: '',
+          bostaQty: '',
+          bostaRate: '',
           receivedAmount: '',
           paymentMethod: 'ক্যাশ',
           notes: '',
@@ -120,7 +128,11 @@ export default function SaleModal({ isOpen, onClose, onSuccess, currentStock = {
   const cRate = parseFloat(formData.cuttingRate) || 0;
   const cuttingTotal = Math.round(cQty * cRate * 100) / 100;
 
-  const grandTotal = tissueTotal + cuttingTotal;
+  const bQty = parseFloat(formData.bostaQty) || 0;
+  const bRate = parseFloat(formData.bostaRate) || 0;
+  const bostaTotal = Math.round(bQty * bRate * 100) / 100;
+
+  const grandTotal = tissueTotal + cuttingTotal + bostaTotal;
   const received = parseFloat(formData.receivedAmount) || 0;
   const dueAmount = Math.max(0, grandTotal - received);
   const totalWithPreviousDue = grandTotal + previousDue;
@@ -134,8 +146,8 @@ export default function SaleModal({ isOpen, onClose, onSuccess, currentStock = {
       return;
     }
 
-    if (tQty <= 0 && cQty <= 0) {
-      setError(lang === 'bn' ? 'কমপক্ষে একটি পেপারের পরিমাণ ও দর লিখুন' : 'Please enter quantity and rate for at least one paper item');
+    if (tQty <= 0 && cQty <= 0 && bQty <= 0) {
+      setError(lang === 'bn' ? 'কমপক্ষে একটি পণ্যের পরিমাণ ও দর লিখুন' : 'Please enter quantity and rate for at least one item');
       return;
     }
 
@@ -158,6 +170,16 @@ export default function SaleModal({ isOpen, onClose, onSuccess, currentStock = {
         unit: 'কেজি',
         rate: cRate,
         total: cuttingTotal,
+      });
+    }
+    if (bQty > 0) {
+      items.push({
+        productType: 'bosta',
+        name: 'বস্তা',
+        quantity: bQty,
+        unit: 'পিস',
+        rate: bRate,
+        total: bostaTotal,
       });
     }
 
@@ -423,6 +445,54 @@ export default function SaleModal({ isOpen, onClose, onSuccess, currentStock = {
               <div className="flex justify-between sm:block sm:col-span-3 sm:text-right pt-1 sm:pt-0 border-t sm:border-0 border-slate-100">
                 <span className="text-[11px] text-slate-500 block">{t('total')}</span>
                 <span className="text-sm font-bold text-amber-800">{formatCurrency(cuttingTotal)}</span>
+              </div>
+            </div>
+
+            {/* Row 3: বস্তা Sale */}
+            <div className="bg-white p-3 sm:p-3.5 rounded-lg border border-violet-200 space-y-2 sm:space-y-0 sm:grid sm:grid-cols-12 sm:gap-3 sm:items-center">
+              <div className="sm:col-span-4">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-sm text-violet-900">বস্তা</span>
+                  <span className="text-[10px] sm:text-[11px] font-medium text-violet-700 bg-violet-50 px-1.5 py-0.5 rounded border border-violet-100">
+                    {lang === 'bn' ? 'স্টক' : 'Stock'}: {formatQty(bostaAvailable, 'পিস')}
+                  </span>
+                </div>
+                <span className="text-[11px] text-slate-500">{lang === 'bn' ? 'পিস হিসেবে বিক্রি হয়' : 'Sold by piece'}</span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 sm:contents">
+                <div className="sm:col-span-3">
+                  <label className="block text-[11px] text-slate-600 mb-0.5">{t('quantity')} (পিস)</label>
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    min="0"
+                    step="1"
+                    placeholder="0"
+                    value={formData.bostaQty}
+                    onChange={(e) => setFormData({ ...formData, bostaQty: e.target.value })}
+                    className="w-full px-3 py-1.5 text-base sm:text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-violet-500 outline-none"
+                  />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="block text-[11px] text-slate-600 mb-0.5">{t('rate')} (৳/পিস)</label>
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    min="0"
+                    step="any"
+                    placeholder="0"
+                    value={formData.bostaRate}
+                    onChange={(e) => setFormData({ ...formData, bostaRate: e.target.value })}
+                    className="w-full px-3 py-1.5 text-base sm:text-sm border border-slate-300 rounded-md focus:ring-1 focus:ring-violet-500 outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-between sm:block sm:col-span-3 sm:text-right pt-1 sm:pt-0 border-t sm:border-0 border-slate-100">
+                <span className="text-[11px] text-slate-500 block">{t('total')}</span>
+                <span className="text-sm font-bold text-violet-800">{formatCurrency(bostaTotal)}</span>
               </div>
             </div>
           </div>

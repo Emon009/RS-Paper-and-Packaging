@@ -154,6 +154,7 @@ export default function TransactionHistory({
 
             const tissueItem = (item.items || []).find(i => i.productType === 'tissue');
             const cuttingItem = (item.items || []).find(i => i.productType === 'cutting_news');
+            const bostaItem = (item.items || []).find(i => i.productType === 'bosta');
 
             return (
               <div key={item.id} className="p-3.5 space-y-2 hover:bg-slate-50 transition">
@@ -223,6 +224,12 @@ export default function TransactionHistory({
                       <span>@{formatCurrency(cuttingItem.rate)}</span>
                     </div>
                   )}
+                  {bostaItem && (
+                    <div className="flex items-center justify-between text-violet-800">
+                      <span>বস্তা: <strong>{formatQty(bostaItem.quantity, bostaItem.unit || 'পিস')}</strong></span>
+                      <span>@{formatCurrency(bostaItem.rate)}</span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Financial breakdown: Total / Paid / Due */}
@@ -277,6 +284,7 @@ export default function TransactionHistory({
 
                 const tissueItem = (item.items || []).find(i => i.productType === 'tissue');
                 const cuttingItem = (item.items || []).find(i => i.productType === 'cutting_news');
+                const bostaItem = (item.items || []).find(i => i.productType === 'bosta');
 
                 return (
                   <tr key={item.id} className="hover:bg-slate-50/80 transition">
@@ -313,6 +321,12 @@ export default function TransactionHistory({
                           <div className="flex items-center gap-1.5 text-amber-800 font-medium text-[11px]">
                             <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
                             <span>Cutting: <strong>{formatQty(cuttingItem.quantity, cuttingItem.unit || t('kg'))}</strong> (@ {formatCurrency(cuttingItem.rate)})</span>
+                          </div>
+                        )}
+                        {bostaItem && (
+                          <div className="flex items-center gap-1.5 text-violet-800 font-medium text-[11px]">
+                            <span className="w-1.5 h-1.5 rounded-full bg-violet-500"></span>
+                            <span>বস্তা: <strong>{formatQty(bostaItem.quantity, bostaItem.unit || 'পিস')}</strong> (@ {formatCurrency(bostaItem.rate)})</span>
                           </div>
                         )}
                       </div>
